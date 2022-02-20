@@ -1,4 +1,4 @@
-function [buckets] = plotOptBucket_optResult(matrix,ppm,buckets,xlims,ylims,varargin)
+function [buckets] = plotOptBucket_optResult_auto(matrix,ppm,buckets,xlims,ylims,varargin)
 
 %% plotOptBucket_optResult
 % Modified from the following by Yue Wu
