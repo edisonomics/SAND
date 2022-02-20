@@ -37,3 +37,14 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# Matlab
+*.m~
+
+# OS
+*.DS_Store*
+*.dmg*
+*.iso*
+*.jar*
+*._*
+*.Trashes*
