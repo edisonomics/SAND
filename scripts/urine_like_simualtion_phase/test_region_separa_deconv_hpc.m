@@ -1,11 +1,11 @@
 % The spectra has been separated into regions in NMRPipe
-%
+% the folder structure ./temp, ./data, ./res
 close all;
 clear all;
-addpath(genpath('/home/yw44924/Edison_lab_UGA'));
+addpath(genpath('/home/yw44924/metabolic_toolbox_open/Edison_Lab_Shared_Metabolomics_UGA'));
+addpath(genpath('/home/yw44924/nmr_spec_decomp/NMR_time_domain_decomposition'));
 distcomp.feature('LocalUseMpiexec',false);
 tic;
-% start=cputime;
 shelladd='source /home/yw44924/.cshrc';
 defaultProfile=parallel.defaultClusterProfile;
 p=parcluster(defaultProfile);
@@ -41,7 +41,7 @@ for ftfile=locfiles_ft
   ind=str2num(numstr{1});
   ft_cell(ind)={fttab};
 end
-ppm=ft_cell{1}{:,'ppm'};
+% ppm=ft_cell{1}{:,'ppm'};
 car_freq_ppm=axes(8,1);%carrier frequency
 resfreq=axes(14,1);%the spectrometer frequency MHZ
 % mask data for each band
@@ -90,6 +90,7 @@ ppm=inc2ppm(axes);
 ppm=ppm.ppm1;
 ft_ori_tab=table(ppm,value);
 %%%%%%%%%%parameters%%%%%%%%%
+% The user can reuse the following parameters. Some modifications might be needed for spectic running purpose
 nregion=length(fid_cell);
 region_check=1:nregion;
 % sample separation
@@ -99,11 +100,11 @@ ntime=length(timevec);
 sample_size=floor(ntime.*sample_ratio);
 sample_size(1)=ntime-sum(sample_size(2:3));
 % fitting parameters
-shifttimeadd=76;%time point to shift. 76 for experimental dataset 0 for simulated dataset
+shifttimeadd=76;%time point to shift. mostly 76 for experimental dataset 0 for simulated dataset
 guesssig=7;%maximal number of possible peaks/signals
 noiseseq=real(fid_raw((ntime-500):ntime));
 sigma=std(noiseseq);%estimation of noise level
-convfactor=1./(sample_size.*sigma^2);
+convfactor=1./(sample_size.*sigma^2);%for performance evaluation
 nfreq=1000;%number of frequency to search
 para_add_list=struct();
 para_add_list.lambdadefault=15;%default value for lambda
@@ -123,6 +124,7 @@ range_tab=[nan nan; 0.01 lambdamax_arg; 0.1/10^7 20; -1 1];%f, lambda, A, phi
 thres_digit=thres_digit_arg;%remove noisy regions contains no signals
 para_add_list.newprop=newprop_arg;%the initial guess of new peaks need to be at least 1/newprop of the minimum among existing peaks
 para_add_list.objrescale=true;%whether use sigma to rescale the objective function
+% storing structures
 tab_perf=zeros(nregion,3);
 store_array_list=cell([length(locfiles_ft),1]);%parameter for each regions
 store_spec_list=cell([length(locfiles_ft),1]);%spectra for each regions
@@ -146,7 +148,7 @@ parfor regioni=region_check%some variables are copied and modified as for parall
   ppmrange=flip(rangetab{regioni,2:3});%the estimation range need to be larger (the whole non-zero range)
   ppmrange_sele=flip(rangetab{regioni,4:5});%the result need to be refined by inner range
   if (ppmrange_sele(1)>dssppm || ppmrange_sele(2)<dssppm)
-  continue;
+    continue;
   end
   titlestr=[num2str(ppmrange(1)),'_',num2str(ppmrange(2)),'_regi',num2str(regioni)];
   frange=(ppmrange-para_add_list2.conv_f(1))*para_add_list2.conv_f(2);
@@ -415,8 +417,7 @@ legend('raw','estimation');
 saveas(fig,['temp_sum_comp' '_runid' runidstr '.fig']);
 close all;
 
-% filter and combine
-ppm_threshold_default=1;%in term of frequency HZ
+% filter and combine estimations
 tabsumm=[];
 % alternative region skip combination: combine results from each region and each region is separated
 for regi=region_check(1:1:length(region_check))
@@ -433,21 +434,7 @@ preind=(shifttimeadd+1):ntime;
 timevec_sub_front=timevec(preind)-timevec(preind(1));
 %
 paravec_propose=reshape(tabsumm',1,[]);
-% % local optimization for refinement
-% add_shift=10;
-% opt_ind=add_shift:6000;
-% timevec_sub_front_opt=timevec_sub_front(opt_ind);
-% % optimize range
-% % filt_low=quantile(tabsumm(:,3),0.8);
-% % sig_opt=find(tabsumm(:,3)>filt_low);
-% sig_opt=1:size(tabsumm,1);
-% optA_ind=3+(sig_opt-1)*4;
-% optrange=[paravec_propose(optA_ind)*0.5; paravec_propose(optA_ind)*2]';
-% paravec_propose_sele=paravec_propose(optA_ind)';
-% obj=@(x)obj_fun_parpara(x,paravec_propose,optA_ind,fid_ori(preind(opt_ind)),size(tabsumm,1),timevec_sub_front_opt,'complex');
-% opts=optimoptions('fmincon','display','iter-detailed','MaxIterations',50,'OptimalityTolerance',0.1,'UseParallel',true);%iter-detailed %off
-% [paravec_propose_sele fval]=fmincon(obj,paravec_propose_sele,[],[],[],[],optrange(:,1),optrange(:,2),[],opts);
-% paravec_propose(optA_ind)=paravec_propose_sele;
+%
 tabsumm_refine=reshape(paravec_propose,4,[])';
 
 % % full spectra visualization
@@ -477,7 +464,6 @@ close all;
 % objective function
 obj_scaled=sqrt(sum(abs(fid_ori-sumsig).^2)/length(sumsig)/sigma^2);
 % time cost
-% timecost=cputime-start;
 timecost=toc;
 % save data
 % simu_tab=table(ppm,new_spec_vec);
