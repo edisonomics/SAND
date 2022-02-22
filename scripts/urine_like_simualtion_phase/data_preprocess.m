@@ -10,7 +10,7 @@ localPaths.nmrdecomp_path='/Users/yuewu/Documents/GitHub/NMR_time_domain_decompo
 addpath(genpath(localPaths.public_toolbox));
 addpath(genpath(localPaths.nmrdecomp_path));
 pause(1),clc
-% the path should be changed accordingly 
+% the path should be changed accordingly in the users' computer
 paredir='/Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/spec_deconv_time_domain/result/publicaiton_spec_decomp/'
 projdir=[paredir 'result_reproduce/urine_like_simualtion_phase/'];
 datadir=[paredir 'data/urine_fitting/'];
