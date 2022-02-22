@@ -1,15 +1,24 @@
 close all;
 clear all;
-addpath(genpath('/Users/yuewu/Documents/GitHub/Edison_lab_UGA'));
-addpath(genpath('/Users/yuewu/Documents/GitHub/Edison_Lab_Shared_Metabolomics_UGA'))
-projdir='/Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/spec_deconv_time_domain/result/phase_issue/';
+%% Set your toolbox paths; functions imported from these directories:
+% Metabolic toolbox toolbox found @  https://github.com/artedison/Edison_Lab_Shared_Metabolomics_UGA
+localPaths.public_toolbox='/Users/yuewu/Documents/GitHub/Edison_Lab_Shared_Metabolomics_UGA/';
+% NMR decompositon program found @ https://github.com/mikeaalv/NMR_time_domain_decomposition
+localPaths.nmrdecomp_path='/Users/yuewu/Documents/GitHub/NMR_time_domain_decomposition/';
+addpath(genpath(localPaths.public_toolbox));
+addpath(genpath(localPaths.nmrdecomp_path));
+pause(1),clc
+% the path should be changed accordingly in hte users' computer
+paredir='/Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/spec_deconv_time_domain/result/publicaiton_spec_decomp/'
+projdir=[paredir 'result_reproduce/urine_like_simualtion_phase/'];
+datadir=[paredir 'data/urine_fitting/'];
+libdir=[datadir 'test_trans.fid'];% a template fid file containing useful header information
 preresdirpath=[projdir 'res/deconv/res/res/'];
-libdir='/Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/spec_deconv_time_domain/result/urine_peak_broad_add/res/decomp_run1/res/nmrpipe_dir/2/test_trans.fid';
+cd([projdir]);
 % load original simulation information
 load([projdir 'res/saved_simulation.mat']);
 specppm=ppm_r;
 %
-nsample=10
 sampleseq=1:nsample;
 ppmrange_dss=[-0.1 0.1];
 deltapm_threshold=0.002;%distance threshold for peak matching
