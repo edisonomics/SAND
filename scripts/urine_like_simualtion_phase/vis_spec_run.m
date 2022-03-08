@@ -12,7 +12,7 @@ pause(1),clc
 paredir='/Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/spec_deconv_time_domain/result/publicaiton_spec_decomp/'
 projdir=[paredir 'result_reproduce/urine_like_simualtion_phase/'];
 datadir=[paredir 'data/urine_fitting/'];
-libdir=[datadir 'test_trans.fid'];% a template fid file containing useful header information
+libdir=[datadir 'test_trans.fid'];% a template fid file containing useful header information. https://www.dropbox.com/s/1i0dixw4vasctwu/test_trans.fid?dl=0
 preresdirpath=[projdir 'res/deconv/res/res/'];
 cd([projdir]);
 % load original simulation information

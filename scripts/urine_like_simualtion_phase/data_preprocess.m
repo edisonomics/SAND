@@ -16,8 +16,8 @@ projdir=[paredir 'result_reproduce/urine_like_simualtion_phase/'];
 datadir=[paredir 'data/urine_fitting/'];
 rundir=[projdir];
 pipescriptdir=[localPaths.nmrdecomp_path 'scripts/urine_like_simualtion_phase/pipe_script/'];
-preparapath=[datadir 'runid2_env_final.mat']; % decomposition of a urine dataset, to make the simulation more realistic
-preheadpath=[datadir 'test_trans.fid'];% a template fid file containing useful header information for NMRPipe
+preparapath=[datadir 'runid2_env_final.mat']; % decomposition of a urine dataset, to make the simulation more realistic. https://www.dropbox.com/s/pcbz1bgp9ss3kpb/runid2_env_final.mat?dl=0
+preheadpath=[datadir 'test_trans.fid'];% a template fid file containing useful header information for NMRPipe. https://www.dropbox.com/s/1i0dixw4vasctwu/test_trans.fid?dl=0
 % prenoisepath=[datadir 'temp.fid.txt'];%
 cd(rundir);
 mkdir('res')
