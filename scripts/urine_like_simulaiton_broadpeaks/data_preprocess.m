@@ -97,8 +97,8 @@ for sampi=1:nsample
   resvec=sin_mixture_simu(para_tab,timevec_sub_front',sigma,'complex');
   resvec(1)=resvec(1)*0.5;
   resvec=[zeros([1,shifttimeadd]) resvec];
-  spec_new_sum=ft_pipe(table([1:length(resvec)]',real(resvec)',imag(resvec)'),preheadpath,'temp');
-  sepc_mat=[sepc_mat; spec_new_sum{:,2}'];
+  % spec_new_sum=ft_pipe(table([1:length(resvec)]',real(resvec)',imag(resvec)'),preheadpath,'temp');
+  % sepc_mat=[sepc_mat; spec_new_sum{:,2}'];
   groundtruth_arra=[groundtruth_arra; [para_tab repmat(sampi,[size(para_tab,1),1])] ];
   fid_mat=[fid_mat; resvec];
 end
