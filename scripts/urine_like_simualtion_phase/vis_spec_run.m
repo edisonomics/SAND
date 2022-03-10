@@ -181,8 +181,8 @@ h=figure();
   gscatter(summtab{:,'lambda_true'},summtab{:,'lambda_est'},summtab{:,'simulation'},[],[],[20]);
   xlabel('ground truth');
   ylabel('estimation');
-  title([type ' lambda ']);
-saveas(h,['scatter_simulation.' type '_lambda.fig']);
+  title([' lambda ']);
+saveas(h,['scatter_simulation.' '_lambda.fig']);
 close(h);
 corr(summtab{:,'lambda_true'},summtab{:,'lambda_est'})
 % phi estimation
