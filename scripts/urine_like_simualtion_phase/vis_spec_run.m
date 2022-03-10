@@ -84,6 +84,15 @@ quan_str=struct();
 quan_str.deconv=est_tab;
 quan_str.intensity=est_other_tab(:,{'PPM','lambda','intensity','phase','simulation'});
 quan_str.integral=est_other_tab(:,{'PPM','lambda','integral','phase','simulation'});
+% select within interested ppm range
+selerange=[6.8 8.6; -0.1 0.1];% considered ppm range
+for type=fieldnames(quan_str)'
+  type=type{1};
+  tempdata=quan_str.(type);
+  rowind_ppm=find(tempdata{:,'PPM'}>selerange(1,1)&tempdata{:,'PPM'}<selerange(1,2) | tempdata{:,'PPM'}>selerange(2,1)&tempdata{:,'PPM'}<selerange(2,2));
+  tempdata=tempdata(rowind_ppm,:);
+  quan_str.(type)=tempdata;
+end
 % match estimation with ground truth
 summ_str=struct();
 for type=fieldnames(quan_str)'
