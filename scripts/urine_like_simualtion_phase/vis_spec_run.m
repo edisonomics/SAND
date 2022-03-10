@@ -164,7 +164,15 @@ for type=fieldnames(quan_str)'
   end
   evalu_str.(type)=evalu;
 end
-save('evaluation.mat','evalu_str');
+% make the table
+evalu_tab=cell2table(cell(0,6),'VariableNames',{'rel_mse','mse','corxy','k', 'quan_method'});
+for methele=fieldnames(evalu_str)'
+  methele=methele{1};
+  loctab=struct2table(evalu_str.(methele));
+  loctab=[loctab(:,{'rel_mse','mse','corxy','k'}) table({methele},'VariableNames',{'quan_method'})];
+  evalu_tab=[evalu_tab; loctab];
+end
+save('evaluation.mat','evalu_str','evalu_tab');
 % scattter plot
 for type=fieldnames(summ_str)'
   type=type{1};
