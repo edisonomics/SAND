@@ -100,22 +100,25 @@ sepc_mat=[];
 groundtruth_arra=[];
 for sampi=1:nsample
   para_tab=[];
+  groupvec=[];
   for compdi=1:ncompound
-    temppara_tab=tabsumm_refine2_sele(find(peak_group_vec==compdi),:);
+    seleind=find(peak_group_vec==compdi);
+    temppara_tab=tabsumm_refine2_sele(seleind,:);
     temppara_tab(:,3)=temppara_tab(:,3)*rel_compd_conc_mat(sampi,compdi);%A
     para_tab=[para_tab; temppara_tab];
+    groupvec=[groupvec; repmat(compdi,[length(seleind),1])];
   end
   resvec=sin_mixture_simu(para_tab,timevec_sub_front',sigma,'complex');
   resvec(1)=resvec(1)*0.5;
   resvec=[zeros([1,shifttimeadd]) resvec];
   % spec_new_sum=ft_pipe(table([1:length(resvec)]',real(resvec)',imag(resvec)'),preheadpath,'temp');
   % sepc_mat=[sepc_mat; spec_new_sum{:,2}'];
-  groundtruth_arra=[groundtruth_arra; [para_tab repmat(sampi,[size(para_tab,1),1])] ];
+  groundtruth_arra=[groundtruth_arra; [para_tab repmat(sampi,[size(para_tab,1),1])] groupvec];
   fid_mat=[fid_mat; resvec];
 end
 % stackSpectra(sepc_mat,ppm,0,10,'')
 groundtruth_tab=array2table(groundtruth_arra);
-groundtruth_tab.Properties.VariableNames={'frequency','lambda','A','phase','simulation'};
+groundtruth_tab.Properties.VariableNames={'frequency','lambda','A','phase','simulation','group'};
 timeind_vec=1:size(fid_mat,2);
 % save as fid file
 simusave=['simu_data/'];
