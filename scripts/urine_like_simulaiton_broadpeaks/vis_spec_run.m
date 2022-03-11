@@ -22,6 +22,28 @@ specppm=ppm_r;
 sampleseq=1:nsample;
 ppmrange_dss=[-0.1 0.1];
 deltapm_threshold=0.002;%distance threshold for peak matching
+% vis check of the deconv
+for i=sampleseq
+  foldpath=[preresdirpath num2str(i) '/'];
+  dircont=dir([foldpath '*ft*.fig'])
+  figpath=[foldpath dircont.name];
+  uiopen(figpath,1);
+end
+close all;
+obj_refine=[];
+time_cost=[];
+for runid=sampleseq
+  load([preresdirpath num2str(runid) '/runid' num2str(runid) '_refine_res.mat']);
+  obj_refine=[obj_refine obj_scaled];
+  time_cost=[time_cost timecost];
+end
+tab_eval=table(sampleseq',obj_refine',time_cost','VariableNames',{'id','obj_refine','time_cost'});
+save('performance_eval.mat','tab_eval');
+% mean performance
+mean(log10(tab_eval{:,'obj_refine'}))
+% mean time
+mean(tab_eval{:,'time_cost'})
+
 % remove broad peaks
 groundtruth_tab=groundtruth_tab(groundtruth_tab{:,'lambda'}<=15,:);
 % ground truth

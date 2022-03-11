@@ -10,7 +10,7 @@ addpath(genpath(localPaths.nmrdecomp_path));
 pause(1),clc
 % the path should be changed accordingly in hte users' computer
 paredir='/Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/spec_deconv_time_domain/result/publicaiton_spec_decomp/'
-projdir=[paredir 'result_reproduce/urine_like_simualtion_phase/'];
+projdir=[paredir 'result_reproduce/urine_like_simulaiton_broadpeaks/'];
 datadir=[paredir 'data/urine_fitting/'];
 libdir=[datadir 'test_trans.fid'];% a template fid file containing useful header information. https://www.dropbox.com/s/1i0dixw4vasctwu/test_trans.fid?dl=0
 preresdirpath=[projdir 'res/deconv/res/res/'];
@@ -22,6 +22,7 @@ specppm=ppm_r;
 sampleseq=1:nsample;
 ppmrange_dss=[-0.1 0.1];
 deltapm_threshold=0.002;%distance threshold for peak matching
+%
 % vis check of the deconv
 for i=sampleseq
   foldpath=[preresdirpath num2str(i) '/'];
@@ -44,6 +45,8 @@ mean(log10(tab_eval{:,'obj_refine'}))
 % mean time
 mean(tab_eval{:,'time_cost'})
 
+% remove broad peaks
+groundtruth_tab=groundtruth_tab(groundtruth_tab{:,'lambda'}<=15,:);
 % ground truth
 for sampi=sampleseq
   rowinds=find(groundtruth_tab{:,'simulation'}==sampi);
@@ -157,72 +160,84 @@ for type=fieldnames(quan_str)'
   tempstr.rec_ratio=rec_ratio;
   summ_str.(type)=tempstr;
 end
-% calculate evaluations
-evalu_str=struct();
-for type=fieldnames(quan_str)'
-  type=type{1};
-  summtab=summ_str.(type).summtab;
-  rel_mse_vec=[];
-  mse_vec=[];
-  corxy_vec=[];
-  k_vec=[];
-  for simui=sampleseq
-    loctab=summtab(summtab{:,'simulation'}==simui,:);
-    xvec=loctab{:,'A_true'};
-    yvec=loctab{:,'A_est'};
-    ndata=length(xvec);
-    rel_mse_vec=[rel_mse_vec sum(((xvec-yvec)./mean([xvec yvec],2)).^2)/ndata];
-    mse_vec=[mse_vec sum((xvec-yvec).^2)/ndata];
-    corxy_vec=[corxy_vec corr(xvec,yvec)];
-    dlm=fitlm(xvec,yvec,'Intercept',false);
-    k_vec=[k_vec dlm.Coefficients.Estimate];
+% separate simulation with broad peaks and without in the evaluation
+samptypes=unique(sampseq)';%no_broad_peak, with_broad_peak
+smptypes_str={'nobroad','broad'};
+evalu_str_types=struct();
+for samptype=samptypes
+  subind=find(sampseq==samptype)';
+  % calculate evaluations
+  evalu_str=struct();
+  for type=fieldnames(quan_str)'
+    type=type{1};
+    summtab=summ_str.(type).summtab;
+    rel_mse_vec=[];
+    mse_vec=[];
+    corxy_vec=[];
+    k_vec=[];
+    for simui=subind
+      loctab=summtab(summtab{:,'simulation'}==simui,:);
+      xvec=loctab{:,'A_true'};
+      yvec=loctab{:,'A_est'};
+      ndata=length(xvec);
+      rel_mse_vec=[rel_mse_vec sum(((xvec-yvec)./mean([xvec yvec],2)).^2)/ndata];
+      mse_vec=[mse_vec sum((xvec-yvec).^2)/ndata];
+      corxy_vec=[corxy_vec corr(xvec,yvec)];
+      dlm=fitlm(xvec,yvec,'Intercept',false);
+      k_vec=[k_vec dlm.Coefficients.Estimate];
+    end
+    evalu=struct();
+    for eval_ele={'rel_mse' 'mse' 'corxy' 'k'}
+      eval_ele=eval_ele{1};
+      locvec=eval([eval_ele '_vec']);
+      evalu.(eval_ele)=mean(locvec);
+      evalu.([eval_ele '_ste'])=std(locvec)/sqrt(length(locvec));
+    end
+    evalu_str.(type)=evalu;
   end
-  evalu=struct();
-  for eval_ele={'rel_mse' 'mse' 'corxy' 'k'}
-    eval_ele=eval_ele{1};
-    locvec=eval([eval_ele '_vec']);
-    evalu.(eval_ele)=mean(locvec);
-    evalu.([eval_ele '_ste'])=std(locvec)/sqrt(length(locvec));
+  % scattter plot
+  for type=fieldnames(summ_str)'
+    type=type{1};
+    summtab=summ_str.(type).summtab;
+    evalu=evalu_str.(type);
+    h=figure();
+      gscatter(summtab{:,'A_true'},summtab{:,'A_est'},summtab{:,'simulation'},[],[],[20]);
+      xlabel('ground truth');
+      ylabel('estimation');
+      title([type ' correlation ' num2str(evalu.corxy), ' mse ' num2str(evalu.mse) ' k ' num2str(evalu.k)]);
+    saveas(h,['scatter_simulation.' type '_' smptypes_str{samptype} '.fig']);
+    close(h);
   end
-  evalu_str.(type)=evalu;
-end
-% make the table
-evalu_tab=cell2table(cell(0,6),'VariableNames',{'rel_mse','mse','corxy','k', 'quan_method'});
-for methele=fieldnames(evalu_str)'
-  methele=methele{1};
-  loctab=struct2table(evalu_str.(methele));
-  loctab=[loctab(:,{'rel_mse','mse','corxy','k'}) table({methele},'VariableNames',{'quan_method'})];
-  evalu_tab=[evalu_tab; loctab];
-end
-save('evaluation.mat','evalu_str','evalu_tab');
-% scattter plot
-for type=fieldnames(summ_str)'
-  type=type{1};
-  summtab=summ_str.(type).summtab;
-  evalu=evalu_str.(type);
+  % peaks that are in simulation but not recoverd.
+  rec_ratio_vec=[];
+  for type=fieldnames(summ_str)'
+    type=type{1};
+    rec_ratio_vec=[rec_ratio_vec mean(summ_str.(type).rec_ratio)];
+  end
+  % lambda estimation
+  summtab=summ_str.deconv.summtab;
   h=figure();
-    gscatter(summtab{:,'A_true'},summtab{:,'A_est'},summtab{:,'simulation'},[],[],[20]);
+    gscatter(summtab{:,'lambda_true'},summtab{:,'lambda_est'},summtab{:,'simulation'},[],[],[20]);
     xlabel('ground truth');
     ylabel('estimation');
-    title([type ' correlation ' num2str(evalu.corxy), ' mse ' num2str(evalu.mse) ' k ' num2str(evalu.k)]);
-  saveas(h,['scatter_simulation.' type '.fig']);
+    title([' lambda ']);
+  saveas(h,['scatter_simulation' '_' smptypes_str{samptype} '_lambda.fig']);
   close(h);
+  % corr(summtab{:,'lambda_true'},summtab{:,'lambda_est'})
+  % phi estimation
+  % unique(summ_str.deconv.summtab{:,'phase_est'})
+  evalu_str_types.(smptypes_str{samptype})=evalu_str;
 end
-% peaks that are in simulation but not recoverd.
-rec_ratio_vec=[];
-for type=fieldnames(summ_str)'
-  type=type{1};
-  rec_ratio_vec=[rec_ratio_vec mean(summ_str.(type).rec_ratio)];
+% make the table
+evalu_tab=cell2table(cell(0,6),'VariableNames',{'rel_mse','mse','corxy','k', 'quan_method', 'broadpeak'});
+for typeele=fieldnames(evalu_str_types)'
+  typeele=typeele{1};
+  locstr=evalu_str_types.(typeele);
+  for methele=fieldnames(locstr)'
+    methele=methele{1};
+    loctab=struct2table(locstr.(methele));
+    loctab=[loctab(:,{'rel_mse','mse','corxy','k'}) table({methele},'VariableNames',{'quan_method'}) table({typeele},'VariableNames',{'broadpeak'})];
+    evalu_tab=[evalu_tab; loctab];
+  end
 end
-% lambda estimation
-summtab=summ_str.deconv.summtab;
-h=figure();
-  gscatter(summtab{:,'lambda_true'},summtab{:,'lambda_est'},summtab{:,'simulation'},[],[],[20]);
-  xlabel('ground truth');
-  ylabel('estimation');
-  title([' lambda ']);
-saveas(h,['scatter_simulation.' '_lambda.fig']);
-close(h);
-corr(summtab{:,'lambda_true'},summtab{:,'lambda_est'})
-% phi estimation
-unique(summ_str.deconv.summtab{:,'phase_est'})
+save('evaluation.mat','evalu_str_types','evalu_tab');
