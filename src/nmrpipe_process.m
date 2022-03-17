@@ -1,10 +1,11 @@
-function [returnstate]=nmrpipe_process(pathfold,nfolder,stepflag)
+function [returnstate]=nmrpipe_process(pathfold,nfolder,stepflag,addstr)
 % Run the different process scripts of NMRPipe
 %
 % Arguments:
 %         pathfold: string. path to the folder to run process. Must be provided
 %         nfolder: numeric. the number of folder to process. Must be provided
 %         stepflag: string. the process stage. 'prior': the first step preprocessing. 'band': band filtering and other process. Must be provided
+%         addstr: str. string to addon before nmrpipe running in the shell. mostly used for wired shell environments
 % Return:
 %         0 if succeed. The files in the folder will be processed
 % Examples:
@@ -22,6 +23,9 @@ end
 if ~exist('stepflag','var')
   error('please provide process stage');
 end
+if ~exist('addstr','var')
+  addstr='';
+end
 %
 currdir=pwd;
 cd(pathfold);
@@ -35,6 +39,7 @@ if strcmp(stepflag,'prior')
   % create preprocess.sh file
   shellrun='preprocess.sh';
   shellcommand=[shell_line,
+                addstr,
                 'foreach thedir ( `seq 1 ' num2str(nfolder) '` )',
                 '   echo $thedir',
                 '   cd $thedir/script',
@@ -45,6 +50,7 @@ elseif strcmp(stepflag,'band')
   % create bandprocess.sh file
   shellrun='bandprocess.sh';
   shellcommand=[shell_line,
+                addstr,
                 'foreach thedir ( `seq 1 ' num2str(nfolder) '` )',
                 '   echo $thedir',
                 '   cd $thedir/script',
