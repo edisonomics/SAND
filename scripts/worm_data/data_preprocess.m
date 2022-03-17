@@ -15,9 +15,9 @@ addpath(genpath(localPaths.nmrdecomp_path));
 pause(1),clc
 % the path should be changed accordingly in the users' computer
 paredir='/lustre2/scratch/yw44924/worm_nmr_fd/'
-daradir=[paredir 'data/'];
+datadir=[paredir 'data/'];
 rundir=[paredir];
-pipescriptdir=[localPaths.nmrdecomp_path 'scripts/worm_nmr_fd/pipe_script/'];
+pipescriptdir=[localPaths.nmrdecomp_path 'scripts/worm_data/pipe_script/'];
 %
 cd(rundir);
 mkdir('res')
@@ -73,7 +73,7 @@ meta_tab=meta_tab_new;
 writetable(meta_tab,['metatab_all.txt'],'Delimiter','\t');
 
 % format the fid folder
-fidsave=['/res/worm_fid/'];
+fidsave=['worm_fid/'];
 for rowi=1:size(meta_tab,1)
   locinfor=meta_tab(rowi,:);
   copyfile([datadir 'processed/' locinfor{:,'subfolder'} '/fid/' num2str(locinfor{:,'file_order'}) '.fid'],[fidsave num2str(locinfor{:,'deconvid'}) '.fid']);
@@ -111,6 +111,7 @@ for rowi=1:size(meta_tab,1)
   fclose(f_id);
 end
 % nmrpipe based preprocess
+nsample=size(meta_tab,1);
 nmrpipe_process('./nmrpipe_dir/',nsample,'prior',shelladd);
 % produce band by bucketing
 ppm=[];
