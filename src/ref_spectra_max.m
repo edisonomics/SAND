@@ -107,7 +107,7 @@ end
                 rangbound=sort(matchPPMs(ppmrange,ppmvec));
                 indseq=rangbound(1):rangbound(2);
                 [y,indx]=max(intvec(indseq));
-                x=ppmx(indx+rangbound(1)-1);
+                x=ppmvec(indx+rangbound(1)-1);
                 %
                 [~,idx]=min(abs(x-spectra(i).ppm(peaks)));
                 TSP_ppm(i)=spectra(i).ppm(peaks(idx));
