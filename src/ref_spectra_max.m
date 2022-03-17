@@ -101,9 +101,13 @@ end
                 % set(gca,'xdir','rev')
                 % [x,y]=ginput(1);
                 % close
-                [y,indx]=max(spectra(i).real(peaks));
-                ppmx=spectra(i).ppm(peaks);
-                x=ppmx(indx);
+                ppmrange=[-.7,.7];
+                intvec=spectra(i).real(peaks);
+                ppmvec=spectra(i).ppm(peaks);
+                rangbound=sort(matchPPMs(ppmrange,ppmvec));
+                indseq=rangbound(1):rangbound(2);
+                [y,indx]=max(intvec(indseq));
+                x=ppmx(indx+rangbound(1)-1);
                 %
                 [~,idx]=min(abs(x-spectra(i).ppm(peaks)));
                 TSP_ppm(i)=spectra(i).ppm(peaks(idx));
