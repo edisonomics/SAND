@@ -10,7 +10,7 @@ addpath(genpath(localPaths.nmrdecomp_path));
 pause(1),clc
 % the path should be changed accordingly in hte users' computer
 paredir='/Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/spec_deconv_time_domain/result/publicaiton_spec_decomp/'
-projdir=[paredir 'result_reproduce/urine_like_simulaiton_broadpeaks/'];
+projdir=[paredir 'result_reproduce/urine_like_simulaiton_group/'];
 datadir=[paredir 'data/urine_fitting/'];
 libdir=[datadir 'test_trans.fid'];% a template fid file containing useful header information. https://www.dropbox.com/s/1i0dixw4vasctwu/test_trans.fid?dl=0
 preresdirpath=[projdir 'res/deconv/res/res/'];
@@ -57,7 +57,7 @@ for sampi=sampleseq
   temptab{:,'A'}=temptab{:,'A'}/dssconc;%normalize to DSS
   groundtruth_tab(rowinds,:)=temptab;
 end
-groundtruth_tab.Properties.VariableNames={'PPM','lambda','A','phase','simulation'};
+groundtruth_tab.Properties.VariableNames={'PPM','lambda','A','phase','simulation','group'};
 
 % load decomposation estimation of different spectra
 namelist={};
@@ -149,8 +149,8 @@ for type=fieldnames(quan_str)'
     ind_true=ind_true(thres_ind);
     subtab_est_match=subtab_est(ind_est,{'PPM','A','lambda','phase'});
     subtab_est_match.Properties.VariableNames={'PPM_est','A_est','lambda_est','phase_est'};
-    subtab_true_match=subtab_true(ind_true,{'PPM','A','lambda','phase','simulation'});
-    subtab_true_match.Properties.VariableNames={'PPM_true','A_true','lambda_true','phase_true','simulation'};
+    subtab_true_match=subtab_true(ind_true,{'PPM','A','lambda','phase','group','simulation'});
+    subtab_true_match.Properties.VariableNames={'PPM_true','A_true','lambda_true','phase_true','group','simulation'};
     summtab=[summtab; [subtab_est_match subtab_true_match]];
     rec_ratio=[rec_ratio size(subtab_est_match,1)/size(subtab_true,1)];
   end
@@ -160,84 +160,181 @@ for type=fieldnames(quan_str)'
   tempstr.rec_ratio=rec_ratio;
   summ_str.(type)=tempstr;
 end
-% separate simulation with broad peaks and without in the evaluation
-samptypes=unique(sampseq)';%no_broad_peak, with_broad_peak
-smptypes_str={'nobroad','broad'};
-evalu_str_types=struct();
-for samptype=samptypes
-  subind=find(sampseq==samptype)';
-  % calculate evaluations
-  evalu_str=struct();
-  for type=fieldnames(quan_str)'
-    type=type{1};
-    summtab=summ_str.(type).summtab;
-    rel_mse_vec=[];
-    mse_vec=[];
-    corxy_vec=[];
-    k_vec=[];
-    for simui=subind
-      loctab=summtab(summtab{:,'simulation'}==simui,:);
-      xvec=loctab{:,'A_true'};
-      yvec=loctab{:,'A_est'};
-      ndata=length(xvec);
-      rel_mse_vec=[rel_mse_vec sum(((xvec-yvec)./mean([xvec yvec],2)).^2)/ndata];
-      mse_vec=[mse_vec sum((xvec-yvec).^2)/ndata];
-      corxy_vec=[corxy_vec corr(xvec,yvec)];
-      dlm=fitlm(xvec,yvec,'Intercept',false);
-      k_vec=[k_vec dlm.Coefficients.Estimate];
-    end
-    evalu=struct();
-    for eval_ele={'rel_mse' 'mse' 'corxy' 'k'}
-      eval_ele=eval_ele{1};
-      locvec=eval([eval_ele '_vec']);
-      evalu.(eval_ele)=mean(locvec);
-      evalu.([eval_ele '_ste'])=std(locvec)/sqrt(length(locvec));
-    end
-    evalu_str.(type)=evalu;
+% calculate evaluations
+evalu_str=struct();
+for type=fieldnames(quan_str)'
+  type=type{1};
+  summtab=summ_str.(type).summtab;
+  rel_mse_vec=[];
+  mse_vec=[];
+  corxy_vec=[];
+  k_vec=[];
+  for simui=sampleseq
+    loctab=summtab(summtab{:,'simulation'}==simui,:);
+    xvec=loctab{:,'A_true'};
+    yvec=loctab{:,'A_est'};
+    ndata=length(xvec);
+    rel_mse_vec=[rel_mse_vec sum(((xvec-yvec)./mean([xvec yvec],2)).^2)/ndata];
+    mse_vec=[mse_vec sum((xvec-yvec).^2)/ndata];
+    corxy_vec=[corxy_vec corr(xvec,yvec)];
+    dlm=fitlm(xvec,yvec,'Intercept',false);
+    k_vec=[k_vec dlm.Coefficients.Estimate];
   end
-  % scattter plot
-  for type=fieldnames(summ_str)'
-    type=type{1};
-    summtab=summ_str.(type).summtab;
-    evalu=evalu_str.(type);
-    h=figure();
-      gscatter(summtab{:,'A_true'},summtab{:,'A_est'},summtab{:,'simulation'},[],[],[20]);
-      xlabel('ground truth');
-      ylabel('estimation');
-      title([type ' correlation ' num2str(evalu.corxy), ' mse ' num2str(evalu.mse) ' k ' num2str(evalu.k)]);
-    saveas(h,['scatter_simulation.' type '_' smptypes_str{samptype} '.fig']);
-    close(h);
+  evalu=struct();
+  for eval_ele={'rel_mse' 'mse' 'corxy' 'k'}
+    eval_ele=eval_ele{1};
+    locvec=eval([eval_ele '_vec']);
+    evalu.(eval_ele)=mean(locvec);
+    evalu.([eval_ele '_ste'])=std(locvec)/sqrt(length(locvec));
   end
-  % peaks that are in simulation but not recoverd.
-  rec_ratio_vec=[];
-  for type=fieldnames(summ_str)'
-    type=type{1};
-    rec_ratio_vec=[rec_ratio_vec mean(summ_str.(type).rec_ratio)];
-  end
-  % lambda estimation
-  summtab=summ_str.deconv.summtab;
-  h=figure();
-    gscatter(summtab{:,'lambda_true'},summtab{:,'lambda_est'},summtab{:,'simulation'},[],[],[20]);
-    xlabel('ground truth');
-    ylabel('estimation');
-    title([' lambda ']);
-  saveas(h,['scatter_simulation' '_' smptypes_str{samptype} '_lambda.fig']);
-  close(h);
-  % corr(summtab{:,'lambda_true'},summtab{:,'lambda_est'})
-  % phi estimation
-  % unique(summ_str.deconv.summtab{:,'phase_est'})
-  evalu_str_types.(smptypes_str{samptype})=evalu_str;
+  evalu_str.(type)=evalu;
 end
 % make the table
-evalu_tab=cell2table(cell(0,6),'VariableNames',{'rel_mse','mse','corxy','k', 'quan_method', 'broadpeak'});
-for typeele=fieldnames(evalu_str_types)'
-  typeele=typeele{1};
-  locstr=evalu_str_types.(typeele);
-  for methele=fieldnames(locstr)'
-    methele=methele{1};
-    loctab=struct2table(locstr.(methele));
-    loctab=[loctab(:,{'rel_mse','mse','corxy','k'}) table({methele},'VariableNames',{'quan_method'}) table({typeele},'VariableNames',{'broadpeak'})];
-    evalu_tab=[evalu_tab; loctab];
+evalu_tab=cell2table(cell(0,5),'VariableNames',{'rel_mse','mse','corxy','k','quan_method'});
+for methele=fieldnames(evalu_str)'
+  methele=methele{1};
+  loctab=struct2table(evalu_str.(methele));
+  loctab=[loctab(:,{'rel_mse','mse','corxy','k'}) table({methele},'VariableNames',{'quan_method'})];
+  evalu_tab=[evalu_tab; loctab];
+end
+save('evaluation.mat','evalu_str','evalu_tab');
+% scattter plot
+for type=fieldnames(summ_str)'
+  type=type{1};
+  summtab=summ_str.(type).summtab;
+  evalu=evalu_str.(type);
+  h=figure();
+    gscatter(summtab{:,'A_true'},summtab{:,'A_est'},summtab{:,'simulation'},[],[],[20]);
+    xlabel('ground truth');
+    ylabel('estimation');
+    title([type ' correlation ' num2str(evalu.corxy), ' mse ' num2str(evalu.mse) ' k ' num2str(evalu.k)]);
+  saveas(h,['scatter_simulation.' type '.fig']);
+  close(h);
+end
+% peaks that are in simulation but not recoverd.
+rec_ratio_vec=[];
+for type=fieldnames(summ_str)'
+  type=type{1};
+  rec_ratio_vec=[rec_ratio_vec mean(summ_str.(type).rec_ratio)];
+end
+% lambda estimation
+summtab=summ_str.deconv.summtab;
+h=figure();
+  gscatter(summtab{:,'lambda_true'},summtab{:,'lambda_est'},summtab{:,'simulation'},[],[],[20]);
+  xlabel('ground truth');
+  ylabel('estimation');
+  title([' lambda ']);
+saveas(h,['scatter_simulation.' '_lambda.fig']);
+close(h);
+corr(summtab{:,'lambda_true'},summtab{:,'lambda_est'})
+
+% correlation network
+%% match peaks from different samples
+ppmlist={};
+namelist={};
+intlist={};
+for runid=sampleseq
+  loctab=est_tab(est_tab{:,'simulation'}==runid,:);
+  ppmlist=[ppmlist loctab{:,'PPM'}'];
+  namelist=[namelist {repmat({'unknown'},[1,size(loctab,1)])}];
+  intlist=[intlist loctab{:,'A'}];
+end
+[ppmmatch_ind_all ppmvec]=ppm_list_match(ppmlist',namelist,'^unknown$',deltapm_threshold);
+mat_reshape_all=[];
+for isample=1:size(ppmmatch_ind_all,1)
+  intenvec=intlist{isample};
+  ppmind=ppmmatch_ind_all(isample,:);
+  intenarray=intenvec(ppmind);
+  mat_reshape_all=[mat_reshape_all; intenarray'];
+end
+%% match with ground truth peak sets
+subtab_true=groundtruth_tab(groundtruth_tab{:,'simulation'}==1,:);%all simulation has the same peak set
+distmat=abs(pdist2(ppmvec',subtab_true{:,'PPM'}));
+[ppm_match_val1,ppm_match_ind1]=min(distmat,[],2);
+[ppm_match_val2,ppm_match_ind2]=min(distmat,[],1);
+ind_true=[];
+ind_est=[];
+for ppm_min_i=1:length(ppm_match_ind1)
+  if ppm_match_ind2(ppm_match_ind1(ppm_min_i))==ppm_min_i%check for pairwise match
+    ind_true=[ind_true ppm_match_ind1(ppm_min_i)];
+    ind_est=[ind_est ppm_min_i];
   end
 end
-save('evaluation.mat','evalu_str_types','evalu_tab');
+mat_reshape_all=mat_reshape_all(:,ind_est);
+ppmvec=ppmvec(ind_est);
+% remove DSS as it cause numeric problem as its not changing
+remind=find(abs(ppmvec)<0.01);
+ppmvec(remind)=[];
+mat_reshape_all(:,remind)=[];
+%
+namesall=strcat({'unknown'},cellstr(num2str(ppmvec'))');
+%% correlation network
+threhold_corr=0.9;
+cor_intensity=corr(mat_reshape_all,mat_reshape_all,'Type','Spearman');
+indmat=zeros(size(cor_intensity));
+lenmat=size(cor_intensity,1);
+for i=1:lenmat
+  indmat(i,(i+1):lenmat)=1;
+end
+triaind=find(indmat);
+cor_intensity_triag_vec=cor_intensity(triaind);
+cor_intensity_triag=cor_intensity;
+cor_intensity_triag(~indmat)=0;
+%%edge threhold
+thres_display_vec_inten=0.9
+%%%positive correlation of intensity
+[rowind colind]=find(cor_intensity_triag>=thres_display_vec_inten);
+node1={};
+node2={};
+correlation=[];
+for elei=1:length(rowind)
+  roweleind=rowind(elei);
+  coleleind=colind(elei);
+  node1{elei}=namesall{roweleind};
+  node2{elei}=namesall{coleleind};
+  correlation(elei)=cor_intensity_triag(roweleind,coleleind);
+end
+cornet_table_corr=table(node1',node2',correlation','VariableNames',{'source' 'target' 'association'});
+writetable(cornet_table_corr,'deconv_corr_thres0_9.txt','Delimiter','\t');
+% load and visualize in cytoscape
+% find connected groups from correaltion edges
+% if the cluster pattern is already clear without community clustering
+cormat_thres=cor_intensity>=thres_display_vec_inten;
+G=graph(cormat_thres,'omitselfloops');
+% plot(G);
+[graph_conn_group]=conncomp(G);
+groudtruth_onesamp=groundtruth_tab(groundtruth_tab{:,'simulation'}==1,:);
+%
+ppm_true=groudtruth_onesamp{:,'PPM'};
+distmat=abs(pdist2(ppmvec',ppm_true));
+[ppm_match_val1,ppm_match_ind1]=min(distmat,[],2);
+[ppm_match_val2,ppm_match_ind2]=min(distmat,[],1);
+ind_true=[];
+ind_est=[];
+for ppm_min_i=1:length(ppm_match_ind1)
+  if ppm_match_ind2(ppm_match_ind1(ppm_min_i))==ppm_min_i%check for pairwise match
+    ind_true=[ind_true ppm_match_ind1(ppm_min_i)];
+    ind_est=[ind_est ppm_min_i];
+  end
+end
+%
+matchratio=[];
+for groupi=1:(ncompound-1)%ignore DSS
+  groupind=find(groudtruth_onesamp{:,'group'}==groupi);
+  groupsize=length(groupind);
+  matchedind=find(ismember(ind_true,groupind));
+  coll_clust=[];
+  for estclut=unique(graph_conn_group)
+    groupind=find(graph_conn_group==estclut);
+    memmatch=find(ismember(ind_est(matchedind),groupind));
+    coll_clust=[coll_clust length(memmatch)];
+  end
+  matchratio=[matchratio max(coll_clust)/groupsize];
+end
+fig=figure();
+histogram(matchratio);
+xlabel('cluster recover ratio');
+ylabel('frequency');
+set(gca,'FontSize',40);
+saveas(fig,['cluster_prop.fig']);
+close(fig);

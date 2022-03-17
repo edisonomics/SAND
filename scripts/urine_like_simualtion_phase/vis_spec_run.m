@@ -187,7 +187,7 @@ for type=fieldnames(quan_str)'
   evalu_str.(type)=evalu;
 end
 % make the table
-evalu_tab=cell2table(cell(0,6),'VariableNames',{'rel_mse','mse','corxy','k', 'quan_method'});
+evalu_tab=cell2table(cell(0,5),'VariableNames',{'rel_mse','mse','corxy','k', 'quan_method'});
 for methele=fieldnames(evalu_str)'
   methele=methele{1};
   loctab=struct2table(evalu_str.(methele));
