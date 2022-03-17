@@ -26,7 +26,6 @@ pause(1),clc
 paredir='/lustre2/scratch/yw44924/bif_urine/'
 daradir=[paredir 'data/'];
 rundir=[paredir];
-% pipescriptdir=[localPaths.nmrdecomp_path 'scripts/urine_like_simualtion_phase/pipe_script/'];
 pipescriptdir=[localPaths.nmrdecomp_path 'scripts/rcc_urine/pipe_script/'];
 %
 cd(rundir);
@@ -219,4 +218,4 @@ multi_replicate=repmat(unique(runtab{:,'multi_replicate'}),[nsample,1]);
 dataset=cellfun(@(x) {['../nmrpipe_dir/' x '/']},runidseq);
 runtab_new=table(runidseq,lambdamax,newprop,thres_digit,multi_replicate,dataset);
 writetable(runtab_new,['runtab.txt'],'Delimiter','\t','WriteVariableNames',false);
-copyfile([runtab.txt],'./deconv/');
+copyfile(['runtab.txt'],'./deconv/');
