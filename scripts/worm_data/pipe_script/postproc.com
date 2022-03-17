@@ -1,8 +1,7 @@
 #!/bin/csh
 
 # transform nmrpipe files for matlab input
-# transform the fid, ft file to text
-# YUE WU 10/19/2020
+# transform the fid, ft files to text table files
 
 cd ../
 rm -r mask_matlab mask_fid_matlab mask_ft_matlab sum_matlab ori_matlab
@@ -33,8 +32,6 @@ nmrPipe -in test.ft1 \
  | nmrPipe -fn ZF -inv \
   -out test_trans2.fid -ov
 
-# pipe2txt.tcl -index PPM -fmt %24.14lf test.ft1 > ./ori_matlab/test_ft.txt
-# pipe2txt.tcl -index sec -fmt %24.14lf test_trans.fid > ./ori_matlab/test_trans_ift.txt
 pipe2txt.tcl -index PPM -fmt %e test.ft1 > ./ori_matlab/test_ft.txt
 pipe2txt.tcl -index sec -fmt %e test_trans.fid > ./ori_matlab/test_trans_ift.txt
 pipe2txt.tcl -index sec -fmt %e test_trans2.fid > ./temp.fid.txt #without line broadening

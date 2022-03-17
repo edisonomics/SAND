@@ -13,9 +13,11 @@
 # freeform list of operations to perform on the given spectrum for example
 # "set region 12ppm 0.0ppm to 1.0". The band masks are created via operations
 # that generate a rising or falling cosine-square ramp.
+
 cd ../
 
-set T_r=0.05
+set T_r=0.05 #intial processing boundary size
+set rollOffWidthPPM=0.02 #the rollOff boundary size on each side
 set inName          = (`getArgD $argv -in         test.ft1`)
 set specPrefix      = (`getArgD $argv -specPrefix spec`)
 set maskPrefix      = (`getArgD $argv -maskPrefix mask`)
@@ -96,8 +98,6 @@ set len=${#rangel}
 
 set vFlag = "-verb"
 rm record.txt
-# nmrPrintf "FORMAT %%s %%6.4f %%6.4f %%6.4f %%6.4f\n" >> record.txt
-# nmrPrintf "VARS NAME IN_LEFT IN_RIGHT OUT_LEFT OUT_RIGHT\n" >> record.txt
 while ($i <= $len)
    set thisName = (`nmrPrintf "%s/test%03d.ft1" $outDir $i`)
    set ftName   = (`nmrPrintf "%s/test%03d.ft1" $ftDir  $i`)
@@ -105,10 +105,9 @@ while ($i <= $len)
 
    set x2 = $rangel[$i]
    set x3 = $ranger[$i]
-   set rollOffWidthPPM=(`MATH "($x2 - $x3)/2"`)
+   # set rollOffWidthPPM=(`MATH "($x2 - $x3)/2"`)
    set x1 = (`MATH "$x2 + $rollOffWidthPPM"`)
    set x4 = (`MATH "$x3 - $rollOffWidthPPM"`)
-
 
    nmrPrintf "%s %s %s %6.4f ppm %6.4f ppm %6.4f ppm %6.4f ppm\n" $thisName $ftName $fidName $x1 $x2 $x3 $x4
    nmrPrintf "%s %6.4f  %6.4f  %6.4f  %6.4f\n" $fidName $x2 $x3 $x1 $x4 >> record.txt
@@ -141,11 +140,6 @@ while ($i <= $len)
    
    @ i++
 end
-
-#
-# In order to account for overlapping regions, in order to generate a complete
-# spectrum by adding up each band, the result must be normalized (divided) by
-# the sum of all the masks.
 
 /bin/rm -f ${maskPrefix}_sum.ft1 ${maskPrefix}_sum_ft.ft1 ${maskPrefix}_sum_fid.ft1
  
