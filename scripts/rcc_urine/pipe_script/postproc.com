@@ -29,4 +29,7 @@ nmrPipe -in test.ft1 \
 pipe2txt.tcl -index PPM -fmt %e test.ft1 > ./ori_matlab/test_ft.txt
 pipe2txt.tcl -index sec -fmt %e test_trans.fid > ./ori_matlab/test_trans_ift.txt
 
+./script/fid.com
+pipe2txt.tcl -index sec -fmt %e test2.fid > ./temp.fid.txt #without line broadening
+
 cd ./script

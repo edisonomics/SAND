@@ -83,6 +83,36 @@ saveas(fig,['spectra_aligned.fig'])
 close all;
 ppm_Xaligned=vertcat(ppmR,XAL);
 csvwrite('class_aligned.csv',ppm_Xaligned')
+% Remove a Spectra.
+%'SSO54' Papillary RCC sample was removed from furthur analysis because of poor spectral quality, and becaue it prevented the quantification of several metabolites.
+% This sample is line 269 - pre-removal.
+newind=[1:268, 270:size(XAL,1)];
+XAL=XAL(newind,:);
+%% Delete SSO54 (269) from T table.
+metatab=readtable([daradir 'meta_data_1/sample_removedSS054.xlsx']);
+Yvec_meta=metatab.Yvec;
+%
+nsample=size(XAL,1);
+% save the aligned spectra
+% displaypeak1D(XALN,ppmR,0,Yvec);
+% plot(ppmR,XALN)
+presave=['ft_data/'];
+for sampi=1:size(XAL,1)
+  specvec=XAL(sampi,:);
+  temptab=table(flip(ppmR)',flip(specvec)');%as nmrpipe assume one direction of reading spectra
+  writetable(temptab,[presave num2str(sampi) '.ft.txt'],'Delimiter',' ','WriteVariableNames',false);
+end
+% formulate the nmrpipe folder
+nmrpipedir=['nmrpipe_dir/'];
+for sampi=1:size(XAL,1)
+  sampdir=num2str(sampi);
+  mkdir([nmrpipedir sampdir]);
+  mkdir([nmrpipedir sampdir '/script']);
+  copyfile([presave sampdir '.ft.txt'],[nmrpipedir sampdir '/temp.ft.txt']);
+  copyfile([nmrpipedir 'script'],[nmrpipedir sampdir '/script']);
+  copyfile([daradir num2str(newind(sampi)) 'BR1_BIF_5_noesypr1d/'],[nmrpipedir sampdir '/fid']);
+  % copyfile(prenoisepath,[nmrpipedir sampdir '/noise.fid.txt']);
+end
 % Normalization using probabilistic quotient normalization (PQN) method
 XALN=normalize(XAL,ppmR,'PQN');
 normcheck(XALN)
@@ -95,35 +125,6 @@ saveas(fig,['spectra_normalized.fig'])
 close all;
 ppm_XALN_PQN=vertcat(ppmR,XALN);
 csvwrite('class_PQN.csv',ppm_XALN_PQN')
-% Remove a Spectra.
-%'SSO54' Papillary RCC sample was removed from furthur analysis because of poor spectral quality, and becaue it prevented the quantification of several metabolites.
-% This sample is line 269 - pre-removal.
-XALN=XALN([1:268, 270:end],:);
-%% Delete SSO54 (269) from T table.
-metatab=readtable([daradir 'meta_data_1/sample_removedSS054.xlsx']);
-Yvec_meta=metatab.Yvec;
-%
-nsample=size(XALN,1);
-% save the aligned spectra
-% displaypeak1D(XALN,ppmR,0,Yvec);
-% plot(ppmR,XALN)
-presave=['ft_data/'];
-for sampi=1:size(XALN,1)
-  specvec=XALN(sampi,:);
-  temptab=table(flip(ppmR)',flip(specvec)');%as nmrpipe assume one direction of reading spectra
-  writetable(temptab,[presave num2str(sampi) '.ft.txt'],'Delimiter',' ','WriteVariableNames',false);
-end
-% formulate the nmrpipe folder
-nmrpipedir=['nmrpipe_dir/'];
-for sampi=1:size(XALN,1)
-  sampdir=num2str(sampi);
-  mkdir([nmrpipedir sampdir]);
-  mkdir([nmrpipedir sampdir '/script']);
-  copyfile([presave sampdir '.ft.txt'],[nmrpipedir sampdir '/temp.ft.txt']);
-  copyfile([nmrpipedir 'script'],[nmrpipedir sampdir '/script']);
-  % copyfile(preheadpath,[nmrpipedir sampdir '/org.fid']);
-  % copyfile(prenoisepath,[nmrpipedir sampdir '/noise.fid.txt']);
-end
 % PCA plot
 %% Scale using 'logoff'
 XALNS2=scale(XALN,'logoff');
