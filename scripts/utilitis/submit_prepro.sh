@@ -4,8 +4,8 @@
 #SBATCH --ntasks=1                    # Run on a single CPU
 #SBATCH --mem=120gb                     # Job memory request
 #SBATCH --time=150:00:00               # Time limit hrs:min:sec
-#SBATCH --output=fid_decomp.%j.out     # Standard output log
-#SBATCH --error=fid_decomp.%j.err      # Standard error log
+#SBATCH --output=fid_prepro.%j.out     # Standard output log
+#SBATCH --error=fid_prepro.%j.err      # Standard error log
 #SBATCH --cpus-per-task=45             # Number of CPU cores per task
 #SBATCH --mail-type=END,FAIL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=yuewu_mike@163.com  # Where to send mail
