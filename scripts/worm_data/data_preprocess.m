@@ -36,6 +36,8 @@ rng(seedi);
 %             a few files to be downloaded
 mkdir('./deconv');
 mkdir('./deconv/res');
+mkdir('./deconv/temp');
+mkdir('./deconv/data');
 mkdir('./nmrpipe_dir');
 mkdir('./nmrpipe_dir/script');
 mkdir('./worm_fid');
@@ -197,3 +199,5 @@ save('saved_preprocessing.mat');
 nmrpipe_process('./nmrpipe_dir/',nsample,'band',shelladd);
 
 copyfile(['../runtab.txt'],'./deconv/');
+
+!mv ./nmrpipe_dir/* ./deconv/data/

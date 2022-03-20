@@ -45,6 +45,8 @@ rng(seedi);
 %             a few files to be downloaded
 mkdir('./deconv');
 mkdir('./deconv/res');
+mkdir('./deconv/temp');
+mkdir('./deconv/data');
 mkdir('./nmrpipe_dir');
 mkdir('./nmrpipe_dir/script');
 mkdir('./ft_data');
@@ -216,7 +218,9 @@ lambdamax=repmat(unique(runtab{:,'lambdamax'}),[nsample,1]);
 newprop=repmat(unique(runtab{:,'newprop'}),[nsample,1]);
 thres_digit=repmat(unique(runtab{:,'thres_digit'}),[nsample,1]);
 multi_replicate=repmat(unique(runtab{:,'multi_replicate'}),[nsample,1]);
-dataset=cellfun(@(x) {['../nmrpipe_dir/' x '/']},runidseq);
+dataset=cellfun(@(x) {[x '/']},runidseq);
 runtab_new=table(runidseq,lambdamax,newprop,thres_digit,multi_replicate,dataset);
 writetable(runtab_new,['runtab.txt'],'Delimiter','\t','WriteVariableNames',false);
 copyfile(['runtab.txt'],'./deconv/');
+
+!mv ./nmrpipe_dir/* ./deconv/data/
