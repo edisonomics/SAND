@@ -63,6 +63,7 @@ Yvec_meta=metatab.Yvec;
 spectra1=ref_spectra_max(spectra,-0.02)
 % whichLine()
 [X,ppm]=Setup1D(spectra1);
+foldnames={spectra1.FileName};
 displaypeak1D(X,ppm,0,Yvec_meta);
 fig=gcf;
 saveas(fig,['spectra_referenced.fig'])
@@ -112,7 +113,7 @@ for sampi=1:size(XAL,1)
   mkdir([nmrpipedir sampdir '/script']);
   copyfile([presave sampdir '.ft.txt'],[nmrpipedir sampdir '/temp.ft.txt']);
   copyfile([nmrpipedir 'script'],[nmrpipedir sampdir '/script']);
-  copyfile([daradir num2str(newind(sampi)) 'BR1_BIF_5_noesypr1d/'],[nmrpipedir sampdir '/fid']);
+  copyfile([daradir 'BR1_BIF_5_noesypr1d/' foldnames{newind(sampi)} '/fid'],[nmrpipedir sampdir '/fid']);
   % copyfile(prenoisepath,[nmrpipedir sampdir '/noise.fid.txt']);
 end
 % Normalization using probabilistic quotient normalization (PQN) method
