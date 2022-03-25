@@ -6,7 +6,7 @@ bruker -AUTO > conv.out
 chmod a+rx ./fid.com
 fid.com > conv.out
 #
-basicFT1.com -in test.fid -out test.ft1 -scaleTo 1000.0 -xELB 1.5 \
+basicFT1.com -in test.fid -out test.ft1 -scaleTo 1000.0 -xELB 0.3 \
              -xP0 Auto -xP1 0 -xBASEARG POLY,auto,ord=0,window=2% \
              -apOrd 0 -apArgs apx1=-2.0ppm,apxn=-4.0ppm,apMode=rms,apxP0Step=0.1
 
