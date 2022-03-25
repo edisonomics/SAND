@@ -221,7 +221,7 @@ thres_digit=repmat(unique(runtab{:,'thres_digit'}),[nsample,1]);
 multi_replicate=repmat(unique(runtab{:,'multi_replicate'}),[nsample,1]);
 dataset=cellfun(@(x) {[x '/']},runidseq);
 runtab_new=table(runidseq,lambdamax,newprop,thres_digit,multi_replicate,dataset);
-writetable(runtab_new,['runtab.txt'],'Delimiter','\t','WriteVariableNames',false);
+writetable(runtab_new,['runtab.txt'],'Delimiter','\t');
 copyfile(['runtab.txt'],'./deconv/');
 
 !mv ./nmrpipe_dir/* ./deconv/data/

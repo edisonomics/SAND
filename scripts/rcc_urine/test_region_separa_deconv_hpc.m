@@ -103,7 +103,7 @@ sample_size(1)=ntime-sum(sample_size(2:3));
 % fitting parameters
 shifttimeadd=76;%time point to shift. mostly 76 for experimental dataset 0 for simulated dataset
 guesssig=7;%maximal number of possible peaks/signals
-noiseseq=real(fid_raw((ntime-500):ntime));
+noiseseq=real(fid_raw((length(fid_raw)-500):length(fid_raw)));
 sigma=std(noiseseq);%estimation of noise level
 convfactor=1./(sample_size.*sigma^2);%for performance evaluation
 nfreq=1000;%number of frequency to search
