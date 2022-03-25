@@ -1,11 +1,10 @@
 #!/bin/csh
 
+cd ..
 # convert the fid into nmrpipe format
 bruker -AUTO > conv.out
 chmod a+rx ./fid.com
 fid.com > conv.out
-
-cd ..
 #
 basicFT1.com -in test.fid -out test.ft1 -scaleTo 1000.0 -xELB 1.5 \
              -xP0 Auto -xP1 0 -xBASEARG POLY,auto,ord=0,window=2% \
