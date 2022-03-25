@@ -26,10 +26,14 @@ nmrPipe -in test.ft1 \
 | nmrPipe -fn ZF -inv \
  -out test_trans.fid -ov
 
+ nmrPipe -in test2.ft1 \
+ | nmrPipe -fn HT \
+ | nmrPipe -fn FT -inv \
+ | nmrPipe -fn ZF -inv \
+  -out test_trans2.fid -ov
+
 pipe2txt.tcl -index PPM -fmt %e test.ft1 > ./ori_matlab/test_ft.txt
 pipe2txt.tcl -index sec -fmt %e test_trans.fid > ./ori_matlab/test_trans_ift.txt
-
-./script/fid.com
-pipe2txt.tcl -index sec -fmt %e test2.fid > ./temp.fid.txt #without line broadening
+pipe2txt.tcl -index sec -fmt %e test_trans2.fid > ./temp.fid.txt #without line broadening
 
 cd ./script
