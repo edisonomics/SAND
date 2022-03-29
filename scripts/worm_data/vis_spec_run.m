@@ -343,7 +343,6 @@ for clusti=1:length(cluster_sele)
     sumsig(1)=sumsig(1)*scalfactor;
     sumsig=[zeros([shifttimeadd,1]); sumsig];
     spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig),imag(sumsig)),[datadir 'test_trans.fid'],num2str(sampi));
-    /Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/spec_deconv_time_domain/result/publicaiton_spec_decomp/result_reproduce/worm_data/data/test_trans.fid
     new_spec_vec=spec_new_sum{:,2}';
     spec_mat=[spec_mat; new_spec_vec];
   end
