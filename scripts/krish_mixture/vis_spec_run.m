@@ -121,8 +121,6 @@ end
 % use the peaks in pure spectra and relative concentration to calculate the expected peak intensity in each sample
 groundtruth_ratio=readtable(['data/concentration_upd.txt']);
 %
-% peak_thres_gt=0.5;%the quantifile for selecting groundtruth peaks (minimum)
-% peak_thres_n=20;%the highest n peaks in the pure sample spectra to be selected for ground truth calculation
 purespec_str=struct();
 purespec_str.Ibuprofen=[1 12 23];
 purespec_str.Prednesone=[11 22 33];
@@ -160,10 +158,6 @@ for type=fieldnames(quan_str)'
       end
     end
     compd_peak_tab=table(ppmvec',mean(lambda_arra,2),mean(A_arra,2),repmat(0,[npeaks,1]),repmat({compd},[npeaks,1]));
-    % Avec_tab=compd_peak_tab{:,3};
-    % seleind=find(Avec_tab>quantile(Avec_tab,peak_thres_gt));
-    % [~,seleind]=sort(Avec_tab,'descend');
-    % seleind=seleind(1:peak_thres_n);
     seleind=1:npeaks;
     groundtruth_peak=[groundtruth_peak; compd_peak_tab(seleind,:)];
   end
@@ -227,7 +221,7 @@ for type=fieldnames(quan_str)'
   end
   tempstr=struct();
   [~,sortind]=sort(summtab{:,'A_true'},'descend');
-  tempstr.summtab=summtab;%(sortind(1:5000),:)
+  tempstr.summtab=summtab;
   tempstr.rec_ratio=rec_ratio;
   summ_str.(type)=tempstr;
 end
@@ -269,6 +263,8 @@ for methele=fieldnames(evalu_str)'
   evalu_tab=[evalu_tab; loctab];
 end
 save('evaluation.mat','evalu_str','evalu_tab');
+writetable(evalu_tab,'stat_tab.txt');
+
 % scattter plot
 for type=fieldnames(summ_str)'
   type=type{1};
@@ -390,50 +386,58 @@ for ppm_min_i=1:length(ppm_match_ind1)
 end
 %
 matchratio=[];
+visregion=[0 2.5; 4 8];
 for compd=fieldnames(purespec_str)'
   compd=compd{1};
-  compdind=find(strcmp(groudtruth_onesamp{:,'compounds'},compd));
-  groupsize=length(compdind);
-  matchedind=find(ismember(ind_true,compdind));
-  coll_clust=[];
-  g_group_unique=unique(graph_conn_group);
-  for estclut=g_group_unique
-    groupind=find(graph_conn_group==estclut);
-    memmatch=find(ismember(ind_est(matchedind),groupind));
-    coll_clust=[coll_clust length(memmatch)];
+  for regioni=1:size(visregion,1)
+    locregion=visregion(regioni,:);
+    compdind=find(strcmp(groudtruth_onesamp{:,'compounds'},compd));
+    groupsize=length(compdind);
+    matchedind=find(ismember(ind_true,compdind));
+    coll_clust=[];
+    g_group_unique=unique(graph_conn_group);
+    for estclut=g_group_unique
+      groupind=find(graph_conn_group==estclut);
+      memmatch=find(ismember(ind_est(matchedind),groupind));
+      coll_clust=[coll_clust length(memmatch)];
+    end
+    [maxmatch,maxind]=max(coll_clust);
+    matchratio=[matchratio maxmatch/groupsize];
+    % recovered spectra for each clusters
+    clusind=intersect(ind_true,compdind);
+    tabsumm_refine2_sele=groudtruth_onesamp{clusind,1:4};
+    tabsumm_refine2_sele(:,1)=(tabsumm_refine2_sele(:,1)-para_add_list.conv_f(1))*para_add_list.conv_f(2);
+    sumsig=sin_mixture_simu(tabsumm_refine2_sele,timevec_sub_front',0.0,'complex');
+    scalfactor=0.5;
+    sumsig(1)=sumsig(1)*scalfactor;
+    sumsig=[zeros([1,shifttimeadd]) sumsig];
+    spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig)',imag(sumsig)'),preheadpath,'temp');
+    new_spec_vec2=spec_new_sum{:,2};
+    % pure sample spectra
+    sampplot_inds=purespec_str.(compd);
+    ft_ori_mat=[];
+    for puresampind=sampplot_inds
+      ppmori=ppmstr{puresampind};
+      ft_ori_mat=[ft_ori_mat ftstr{puresampind}{:,2}];
+    end
+    newinten=ft_ori_mat(:,1);
+    ppmignore=[2.2 3.5];
+    igreg=sort(matchPPMs(ppmignore,ppmori));
+    newinten_reg=newinten([1:igreg(1) igreg(2):length(newinten)]);
+    int_conv_fac=max(new_spec_vec2)/max(newinten_reg);
+    % local ppm region
+    reg1=sort(matchPPMs(locregion,ppmori));
+    seq1=reg1(1):reg1(2);
+    reg2=sort(matchPPMs(locregion,ppm));
+    seq2=reg2(1):reg2(2);
+    %
+    fig=figure();
+    plotr(ppmori(seq1),ft_ori_mat(seq1,:)*int_conv_fac,'LineWidth',2,'Color',[0.8 0.8 0.8]);
+    hold on;
+    plotr(ppm(seq2),new_spec_vec2(seq2),'LineWidth',2,'Color','r');%-mean(ft_ori_tab{:,2})
+    % legend('raw','estimation');
+    title(compd);
+    savefig(fig,[compd '_' num2str(regioni) '_cluster.fig']);
+    close(fig);
   end
-  [maxmatch,maxind]=max(coll_clust);
-  matchratio=[matchratio maxmatch/groupsize];
-  % recovered spectra for each clusters
-  % clusind=find(graph_conn_group==g_group_unique(maxind));
-  % tabsumm_refine2_sele=est_tab_dec_onesamp{clusind,1:4};
-  clusind=intersect(ind_true,compdind);
-  tabsumm_refine2_sele=groudtruth_onesamp{clusind,1:4};
-  tabsumm_refine2_sele(:,1)=(tabsumm_refine2_sele(:,1)-para_add_list.conv_f(1))*para_add_list.conv_f(2);
-  sumsig=sin_mixture_simu(tabsumm_refine2_sele,timevec_sub_front',0.0,'complex');
-  scalfactor=0.5;
-  sumsig(1)=sumsig(1)*scalfactor;
-  sumsig=[zeros([1,shifttimeadd]) sumsig];
-  spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig)',imag(sumsig)'),preheadpath,'temp');
-  new_spec_vec2=spec_new_sum{:,2};
-  % pure sample spectra
-  sampplot_inds=purespec_str.(compd);
-  ft_ori_mat=[];
-  for puresampind=sampplot_inds
-    ppmori=ppmstr{puresampind};
-    ft_ori_mat=[ft_ori_mat ftstr{puresampind}{:,2}];
-  end
-  newinten=ft_ori_mat(:,1);
-  ppmignore=[2.2 3.5];
-  igreg=sort(matchPPMs(ppmignore,ppmori));
-  newinten_reg=newinten([1:igreg(1) igreg(2):length(newinten)]);
-  int_conv_fac=max(new_spec_vec2)/max(newinten_reg);
-  fig=figure();
-  plotr(ppmori,ft_ori_mat*int_conv_fac,'LineWidth',2,'Color',[0.8 0.8 0.8]);
-  hold on;
-  plotr(ppm,new_spec_vec2,'LineWidth',2,'Color','r');%-mean(ft_ori_tab{:,2})
-  % legend('estimation','raw');
-  title(compd);
-  savefig(fig,[compd '_cluster.fig']);
-  close(fig);
 end
