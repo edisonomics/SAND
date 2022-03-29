@@ -195,6 +195,7 @@ for methele=fieldnames(evalu_str)'
   evalu_tab=[evalu_tab; loctab];
 end
 save('evaluation.mat','evalu_str','evalu_tab');
+writetable(evalu_tab,'stat_tab.txt');
 % scattter plot
 for type=fieldnames(summ_str)'
   type=type{1};
@@ -226,3 +227,74 @@ close(h);
 corr(summtab{:,'lambda_true'},summtab{:,'lambda_est'})
 % phi estimation
 unique(summ_str.deconv.summtab{:,'phase_est'})
+
+% stack plot showing result for selected region
+showsamp=[1];
+exampregions=[[6.8:0.2:8.4]' [7.0:0.2:8.6]'];
+for sampshowi=showsamp
+  sampshowistr=num2str(sampshowi);
+  load([projdir '/res/saved_simulation.mat']);
+  load([preresdirpath sampshowistr '/runid' sampshowistr '_refine_res.mat']);
+  load([preresdirpath sampshowistr '/runid' sampshowistr '_temp_store_step2.mat']);
+  load([preresdirpath sampshowistr '/runid' sampshowistr '_trainingdata.mat']);
+  groundtruth_subtab=groundtruth_tab{groundtruth_tab{:,'simulation'}==sampshowi,1:4};
+  for regioni=1:size(exampregions,1)
+    % raw spectra
+    stackmat=ft_ori_tab{:,2}';
+    %
+    region_loc=exampregions(regioni,:);
+    ppmpara=tabsumm_refine(:,1)/para_add_list.conv_f(2)+para_add_list.conv_f(1);
+    ppmind=find(ppmpara>region_loc(1) & ppmpara<region_loc(2));
+    tabpara_loc=tabsumm_refine(ppmind,:);
+    ppmpara=groundtruth_subtab(:,1)/para_add_list.conv_f(2)+para_add_list.conv_f(1);
+    ppmind=find(ppmpara>region_loc(1) & ppmpara<region_loc(2));
+    tabtruth_loc=groundtruth_subtab(ppmind,:);
+    nest=size(tabpara_loc,1);
+    % remove broad peaks in groudtruth table
+    tabtruth_loc(tabtruth_loc(:,2)>15,:)=[];
+    ntruth=size(tabtruth_loc,1);
+    % sort both tables
+    [~,sortind]=sort(tabtruth_loc(:,1));
+    tabtruth_loc=tabtruth_loc(sortind,:);
+    [~,sortind]=sort(tabpara_loc(:,1));
+    tabpara_loc=tabpara_loc(sortind,:);
+    % the simulated spectra
+    sumsig=sin_mixture_simu(tabpara_loc,timevec_sub_front,nan,'complex');
+    scalfactor=0.5;
+    sumsig(1)=sumsig(1)*scalfactor;
+    sumsig=[zeros([shifttimeadd,1]); sumsig];
+    spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig),imag(sumsig)),libdir,num2str(regioni));
+    stackmat=[stackmat; spec_new_sum{:,2}'];
+    % each simulation component
+    for paraseti=1:ntruth
+      sumsig=sin_mixture_simu(tabtruth_loc(paraseti,:),timevec_sub_front,nan,'complex');
+      scalfactor=0.5;
+      sumsig(1)=sumsig(1)*scalfactor;
+      sumsig=[zeros([shifttimeadd,1]); sumsig];
+      spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig),imag(sumsig)),libdir,num2str(paraseti));
+      stackmat=[stackmat; spec_new_sum{:,2}'];
+    end
+    % each deconv component
+    for paraseti=1:nest
+      sumsig=sin_mixture_simu(tabpara_loc(paraseti,:),timevec_sub_front,nan,'complex');
+      scalfactor=0.5;
+      sumsig(1)=sumsig(1)*scalfactor;
+      sumsig=[zeros([shifttimeadd,1]); sumsig];
+      spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig),imag(sumsig)),libdir,num2str(paraseti));
+      stackmat=[stackmat; spec_new_sum{:,2}'];
+    end
+    % color settings
+    colorset=struct();
+    colorset.rgb=flip([[0 0 0]; [1 0 0]; repmat([0 0.7 0],[ntruth,1]); repmat([0 0 0.7],[nest,1])],1);
+    colorset.categories=table(flip([{'ft'},{'sum'},{'truth'},{'estimation'}]'));
+    colorset.colorList=flip([0 0 0; 1 0 0; 0 0.7 0; 0 0 0.7],1);
+    %
+    ppmvis_rang=sort(matchPPMs(region_loc,ppm));
+    ppmvis_ind=ppmvis_rang(1):ppmvis_rang(2);
+    stackmat=flip(stackmat,1);
+    stackSpectra(stackmat(:,ppmvis_ind),ppm(ppmvis_ind),0.0,10,['example ' sampshowistr '_' num2str(regioni)],'colors',colorset);
+    fig=gcf;
+    saveas(fig,['stack_example_' sampshowistr '_' num2str(regioni) '.fig']);
+    close all;
+  end
+end
