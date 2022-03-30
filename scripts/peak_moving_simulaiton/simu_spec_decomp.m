@@ -113,8 +113,15 @@ parfor fragind=1:length(frange)
   spec_coll=[spec_coll; temp_save_spec];
 end
 save(['simu_wide_shifting_dense.mat'],'tab_perf_record','tab_para_record','spec_coll','ppm');
-%
-stackSpectra(spec_coll,ppm,0,10,'stack all spectra')
+%plot the raw spectra
+ppmrange=[1.15 1.4];
+selind=1:2:15;
+rangebd=sort(matchPPMs(ppmrange,ppm));
+rangeseq=rangebd(1):rangebd(2);
+stackSpectra(spec_coll(selind,rangeseq),ppm(rangeseq),0,100,'stack all spectra')
+fig=gcf;
+saveas(fig,'stackspec.fig');
+close all;
 % differences in f and A
 fvec_real=repelem(frange,nseed);
 Avec_real=repelem(0.05,size(tab_para_record,1));
@@ -138,5 +145,5 @@ ylabel('A estimation');
 set(gca,'FontSize',20);
 saveas(fig,['A_est_variance.fig']);
 close(fig);
-% 
+%
 dev_perc=(Avec_real-A_est')./Avec_real;
