@@ -48,7 +48,7 @@ mean(tab_eval{:,'time_cost'})
 visregion=[6.9 8.6];
 regb=sort(matchPPMs(visregion,specppm));
 visseq=regb(1):regb(2);
-stackSpectra(specmat(:,visseq),specppm(visseq),0.0,0,'decompose of one nmr data set')
+stackSpectra(specmat(:,visseq),specppm(visseq),0.0,50,'decompose of one nmr data set')
 fig=gcf;
 saveas(fig,['stack_whole.fig']);
 close all;
