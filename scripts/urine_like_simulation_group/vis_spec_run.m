@@ -318,18 +318,24 @@ for ppm_min_i=1:length(ppm_match_ind1)
   end
 end
 %
+matchvec=zeros(size(namesall));
 matchratio=[];
 for groupi=1:(ncompound-1)%ignore DSS
   groupind=find(groudtruth_onesamp{:,'group'}==groupi);
   groupsize=length(groupind);
   matchedind=find(ismember(ind_true,groupind));
   coll_clust=[];
+  matchcoll={};
   for estclut=unique(graph_conn_group)
     groupind=find(graph_conn_group==estclut);
-    memmatch=find(ismember(ind_est(matchedind),groupind));
+    match_est_ind=ind_est(matchedind);
+    memmatch=find(ismember(match_est_ind,groupind));
     coll_clust=[coll_clust length(memmatch)];
+    matchcoll=[matchcoll {match_est_ind(memmatch)}];
   end
-  matchratio=[matchratio max(coll_clust)/groupsize];
+  [maxsize maxind]=max(coll_clust);
+  matchratio=[matchratio maxsize/groupsize];
+  matchvec(matchcoll{maxind})=1;
 end
 fig=figure();
 histogram(matchratio);
@@ -338,3 +344,8 @@ ylabel('frequency');
 set(gca,'FontSize',40);
 saveas(fig,['cluster_prop.fig']);
 close(fig);
+% nodes table indicate matching in each cluster
+nodtab=table(namesall',matchvec','VariableNames',{'nodes','match'});
+writetable(nodtab,'nodetab.txt','Delimiter','\t');
+
+% stack plot for clusters
