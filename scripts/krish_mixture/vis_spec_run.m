@@ -386,7 +386,7 @@ for ppm_min_i=1:length(ppm_match_ind1)
 end
 %
 matchratio=[];
-visregion=[0 2.5; 4 8];
+visregion=[0 2.44; 4 8];
 for compd=fieldnames(purespec_str)'
   compd=compd{1};
   for regioni=1:size(visregion,1)
