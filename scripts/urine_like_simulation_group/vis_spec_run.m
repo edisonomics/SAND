@@ -320,6 +320,7 @@ end
 %
 matchvec=zeros(size(namesall));
 matchratio=[];
+matchcluster=[];
 for groupi=1:(ncompound-1)%ignore DSS
   groupind=find(groudtruth_onesamp{:,'group'}==groupi);
   groupsize=length(groupind);
@@ -336,6 +337,7 @@ for groupi=1:(ncompound-1)%ignore DSS
   [maxsize maxind]=max(coll_clust);
   matchratio=[matchratio maxsize/groupsize];
   matchvec(matchcoll{maxind})=1;
+  matchcluster=[matchcluster maxind];
 end
 fig=figure();
 histogram(matchratio);
@@ -349,3 +351,57 @@ nodtab=table(namesall',matchvec','VariableNames',{'nodes','match'});
 writetable(nodtab,'nodetab.txt','Delimiter','\t');
 
 % stack plot for clusters
+runid=1;
+loctab=est_tab(est_tab{:,'simulation'}==runid,:);
+matchind=ppmmatch_ind_all(runid,:);
+esttab_loc=loctab(matchind,:);
+stackmat=[];
+% unit convert
+esttab_loc{:,1}=(esttab_loc{:,1}-para_add_list.conv_f(1))*para_add_list.conv_f(2);
+groudtruth_onesamp_conv=groudtruth_onesamp;
+groudtruth_onesamp_conv{:,1}=(groudtruth_onesamp_conv{:,1}-para_add_list.conv_f(1))*para_add_list.conv_f(2);
+% the whole spectrum
+esttab_loc_arra=esttab_loc{:,1:4};
+sumsig=sin_mixture_simu(esttab_loc_arra,timevec_sub_front,nan,'complex');
+scalfactor=0.5;
+sumsig(1)=sumsig(1)*scalfactor;
+sumsig=[zeros([shifttimeadd,1]); sumsig];
+spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig),imag(sumsig)),libdir,'temp');
+stackmat=[stackmat; spec_new_sum{:,2}'];
+%
+estclusters=unique(graph_conn_group);
+% the each cluster
+for groupi=1:4%the first 4 clusters %(ncompound-1)%ignore DSS
+  % the simulated peak groups truth
+  groupind=find(groudtruth_onesamp_conv{:,'group'}==groupi);
+  groundtruth_loc_arra=groudtruth_onesamp_conv{groupind,1:4};
+  sumsig=sin_mixture_simu(groundtruth_loc_arra,timevec_sub_front,nan,'complex');
+  scalfactor=0.5;
+  sumsig(1)=sumsig(1)*scalfactor;
+  sumsig=[zeros([shifttimeadd,1]); sumsig];
+  spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig),imag(sumsig)),libdir,'temp');
+  stackmat=[stackmat; spec_new_sum{:,2}'];
+  % the matched cluster peaks
+  groupind=find(graph_conn_group==estclusters(matchcluster(groupi)));
+  esttab_loc_arra=esttab_loc{groupind,1:4};
+  sumsig=sin_mixture_simu(esttab_loc_arra,timevec_sub_front,nan,'complex');
+  scalfactor=0.5;
+  sumsig(1)=sumsig(1)*scalfactor;
+  sumsig=[zeros([shifttimeadd,1]); sumsig];
+  spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig),imag(sumsig)),libdir,'temp');
+  stackmat=[stackmat; spec_new_sum{:,2}'];
+end
+colorset=struct();
+% colorset.rgb=flip([[0 0 0]; repmat([1 0 0; 0 0 1],[ncompound-1,1])],1);
+colorset.rgb=flip([[0 0 0]; repmat([1 0 0],[2,1]); repmat([0 1 0],[2,1]); repmat([0 0 1],[2,1]); repmat([1 1 0],[2,1])],1);
+colorset.categories=table(flip([{'sum'},{'cluster 1'},{'cluster 2'},{'cluster 3'},{'cluster 4'}]'));
+colorset.colorList=flip([0 0 0; 1 0 0; 0 1 0; 0 0 1; 1 1 0],1);
+%
+region_loc=[6.8 8.6];
+ppmvis_rang=sort(matchPPMs(region_loc,ppm));
+ppmvis_ind=ppmvis_rang(1):ppmvis_rang(2);
+stackmat=flip(stackmat,1);
+stackSpectra(stackmat(:,ppmvis_ind),ppm(ppmvis_ind),0.0,300,['example_stack_plot'],'colors',colorset);
+fig=gcf;
+saveas(fig,['stack_clusters.fig']);
+close all;
