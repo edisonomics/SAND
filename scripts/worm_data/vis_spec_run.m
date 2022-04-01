@@ -14,6 +14,7 @@ projdir=[paredir 'res/res/'];
 cd(projdir);
 dirdeconv=[projdir 'deconv/res/'];
 datadir=[paredir '/data/'];
+libdir=[datadir 'test_trans.fid']
 nsample=146;
 meta_tab=readtable([projdir 'metatab_all.txt'],'Delimiter','\t');
 sampvec=meta_tab{:,'genotype'};
@@ -324,6 +325,7 @@ clustertab_sele=sortrows(clustertab_sele,'Count','descend');
 cluster_sele=clustertab_sele{:,'Value'};
 %
 plotstore_cell={};
+save('temp_store2.mat');
 for clusti=1:length(cluster_sele)
   clusthere=cluster_sele{clusti};
   nodenames=tabclust{strcmp(tabclust{:,'x__mclCluster'},clusthere),'name'};
@@ -354,3 +356,74 @@ for clusti=1:length(cluster_sele)
   plotstore_cell{clusti}=spec_mat;
 end
 save(['cor_clut_spec_plotdata.' clutstr '.mat'],'plotstore_cell');
+
+% visualize some clusters with matched compounds
+ppmloc=ppm;
+% load GISSMO spectra
+%
+compounds=[{'R-Lactate'},{'L-Isoleucine'}];
+clusters=[{{'9'}},{{'17'}}];
+ppmrange=[{[{[1.25 1.4]},{[4 4.2]}]},{{[0.9 1.05]}}];
+cluster_match=table(compounds',clusters',ppmrange','VariableNames',{'compounds' 'clusters' 'ppmrange'});
+stackmat=[];
+% the whole spectra
+runid=1;
+esttab_loc=cell_para_selec{runid};
+sumsig=sin_mixture_simu(esttab_loc,timevec_sub_front,nan,'complex');
+scalfactor=0.5;
+sumsig(1)=sumsig(1)*scalfactor;
+sumsig=[zeros([shifttimeadd,1]); sumsig];
+spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig),imag(sumsig)),libdir,'temp');
+stackmat=[stackmat; spec_new_sum{:,2}'];
+lensize=[];
+for rowi=1:size(cluster_match,1)
+  name=cluster_match{rowi,'compounds'};
+  clusters=cluster_match{rowi,'clusters'}{1};
+  region_loc=cluster_match{rowi,'ppmrange'}{1};
+  indtab=find(strcmp(name,tabinfor{:,'CompoundName'}));
+  id=tabinfor{indtab,'EntryID'};
+  match_spec_id=[id{1} '_simulation_1'];%use the information from the first simulation in gissmo for each compound
+  matchspec=strdata.(match_spec_id);%compound spectra
+  %
+  % cluster peaks
+  tempmat=[];
+  for clusthere=clusters
+    nodenames=tabclust{strcmp(tabclust{:,'x__mclCluster'},clusthere),'name'};
+    nodeind=cellfun(@(x) find(strcmp(namesall_expand,x)),nodenames);
+    recordind=ppmmatch_ind_all_expand(runid,nodeind);
+    recordind=recordind(~isnan(recordind));
+    if length(recordind)==0
+      continue;
+    end
+    loctab=esttab_loc(recordind,:);
+    sumsig=sin_mixture_simu(loctab,timevec_sub_front,nan,'complex');
+    scalfactor=0.5;
+    sumsig(1)=sumsig(1)*scalfactor;
+    sumsig=[zeros([shifttimeadd,1]); sumsig];
+    spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig),imag(sumsig)),libdir,'temp');
+    tempmat=[tempmat; spec_new_sum{:,2}'];
+  end
+  tempmat_sum=sum(tempmat,1);
+  %
+  colorset=struct();
+  colorset.rgb=flip([[0 0 0]; [0 0 1]; [0 1 0]],1);
+  colorset.categories=table(flip([{'sum'},{'cluster'},{'reference'}]'));
+  colorset.colorList=flip([0 0 0; 0 0 1; 0 1 0;],1);
+  % plot regions
+  for regionhere=region_loc
+    regionhere=regionhere{1};
+    ppmvis_rang=sort(matchPPMs(regionhere,ppmloc));
+    ppmvis_ind=ppmvis_rang(1):ppmvis_rang(2);
+    %
+    matchspec_inte=interp1(ppm',matchspec,ppmloc');
+    matchspec_inte=matchspec_inte./max(matchspec_inte(ppmvis_ind))*max(tempmat_sum(ppmvis_ind));
+    stackmat2=stackmat;
+    stackmat2=[stackmat2; tempmat_sum; matchspec_inte];
+    stackmat2=flip(stackmat2,1);
+    stackSpectra(stackmat2(:,ppmvis_ind),ppmloc(ppmvis_ind),0.0,10,[name{1}],'colors',colorset);
+    fig=gcf;
+    saveas(fig,['stack_clusters_' name{1} num2str(regionhere(1)) '_' num2str(regionhere(2)) '.fig']);
+    close all;
+  end
+  lensize=[lensize size(tempmat_sum,1)+1];
+end
