@@ -427,3 +427,53 @@ for rowi=1:size(cluster_match,1)
   end
   lensize=[lensize size(tempmat_sum,1)+1];
 end
+
+% stack plot decompositon
+exampregs=[1.4:0.4:8.2; 1.8:0.4:8.6];
+runid=1;
+esttab_loc=cell_para_selec{runid};
+ft_raw=ft_mat_align(selec_ind(runid),:);
+matchspec_inte=interp1(windowppm',ft_raw,ppm');
+for regioni=1:size(exampregs,1)
+  region_loc=exampregs(regioni,:);
+  stackmat=[];
+  % raw spectra
+  stackmat=matchspec_inte;
+  %
+  ppmpara=esttab_loc(:,1)/para_add_list.conv_f(2)+para_add_list.conv_f(1);
+  ppmind=find(ppmpara>region_loc(1) & ppmpara<region_loc(2));
+  tabpara_loc=esttab_loc(ppmind,:);
+  nest=size(tabpara_loc,1);
+  % sort tables
+  [~,sortind]=sort(tabpara_loc(:,1));
+  tabpara_loc=tabpara_loc(sortind,:);
+  % the simulated spectra
+  sumsig=sin_mixture_simu(tabpara_loc,timevec_sub_front,nan,'complex');
+  scalfactor=0.5;
+  sumsig(1)=sumsig(1)*scalfactor;
+  sumsig=[zeros([shifttimeadd,1]); sumsig];
+  spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig),imag(sumsig)),libdir,num2str(regioni));
+  stackmat=[stackmat; spec_new_sum{:,2}'];
+  % each deconv component
+  for paraseti=1:nest
+    sumsig=sin_mixture_simu(tabpara_loc(paraseti,:),timevec_sub_front,nan,'complex');
+    scalfactor=0.5;
+    sumsig(1)=sumsig(1)*scalfactor;
+    sumsig=[zeros([shifttimeadd,1]); sumsig];
+    spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig),imag(sumsig)),libdir,num2str(paraseti));
+    stackmat=[stackmat; spec_new_sum{:,2}'];
+  end
+  % color settings
+  colorset=struct();
+  colorset.rgb=flip([[0 0 0]; [1 0 0]; repmat([0 0 0.7],[nest,1])],1);
+  colorset.categories=table(flip([{'ft'},{'sum'},{'estimation'}]'));
+  colorset.colorList=flip([0 0 0; 1 0 0; 0 0 0.7],1);
+  %
+  ppmvis_rang=sort(matchPPMs(region_loc,ppm));
+  ppmvis_ind=ppmvis_rang(1):ppmvis_rang(2);
+  stackmat=flip(stackmat,1);
+  stackSpectra(stackmat(:,ppmvis_ind),ppm(ppmvis_ind),0.0,1,['example ' num2str(regioni)],'colors',colorset);
+  fig=gcf;
+  saveas(fig,['stack_example_region_' num2str(regioni) '.fig']);
+  close all;
+end
