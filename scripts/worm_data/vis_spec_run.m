@@ -429,7 +429,7 @@ for rowi=1:size(cluster_match,1)
 end
 
 % stack plot decompositon
-exampregs=[1.4:0.4:8.2; 1.8:0.4:8.6];
+exampregs=[1.4:0.4:8.2; 1.8:0.4:8.6]';
 runid=1;
 esttab_loc=cell_para_selec{runid};
 ft_raw=ft_mat_align(selec_ind(runid),:);
