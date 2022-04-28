@@ -1,6 +1,6 @@
 % construct the simulation dataset folder
 % Different from other script, this script will be run on HPC as of the data size problem
-% for worm data
+% for urine data
 close all;
 clear all;
 shelladd='source /home/yw44924/.cshrc';
