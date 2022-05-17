@@ -1,4 +1,4 @@
-% construct the simulation dataset folder
+% construct the dataset folder
 % Different from other script, this script will be run on HPC as of the data size problem
 % for urine data
 close all;
