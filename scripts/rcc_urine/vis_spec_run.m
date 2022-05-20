@@ -18,7 +18,6 @@ cd([projdir 'res/res_smallbin/']);
 load([projdir 'res/res_smallbin/proc_data/saved_preprocessing.mat']);
 specppm=ppm_r;
 %
-nsample=318;% temp
 sampleseq=1:nsample;
 % ppmrange_dss=[-0.1 0.1];
 % deltapm_threshold=0.002;%distance threshold for peak matching
@@ -95,7 +94,8 @@ save('deconv_res.mat','ppmlist','namelist','Alist','lamblist','binlist','cell_pa
 save('temp_store.mat','-v7.3');
 %
 % stack plot decompositon
-exampregs=[-0.1:0.3:9.2; 0.2:0.3:9.5]';
+% exampregs=[-0.1:0.3:9.2; 0.2:0.3:9.5]';
+exampregs=[7.0 7.5; 7.5 8.0; 8.0 8.5; 1. 1.5; 1.5 2.0; 2.0 2.5]%[7.1 8.5; 1 2.4];
 runid=6;
 esttab_loc=cell_para{runid};
 ft_raw=ft_mat(runid,:);
@@ -143,6 +143,6 @@ for regioni=1:size(exampregs,1)
   stackmat=flip(stackmat,1);
   stackSpectra(stackmat(:,ppmvis_ind),ppm(ppmvis_ind),0.0,1,['example ' num2str(regioni)],'colors',colorset);
   fig=gcf;
-  saveas(fig,['stack_example_region_' num2str(regioni) '.fig']);
+  saveas(fig,['stack_example_region_' num2str(regioni) 'sele.fig']);
   close all;
 end
