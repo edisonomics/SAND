@@ -371,7 +371,8 @@ stackmat=[stackmat; spec_new_sum{:,2}'];
 %
 estclusters=unique(graph_conn_group);
 % the each cluster
-for groupi=1:4%the first 4 clusters %(ncompound-1)%ignore DSS
+ncluster=ncompound-1;
+for groupi=1:ncluster%the first 4 clusters %(ncompound-1)%ignore DSS
   % the simulated peak groups truth
   groupind=find(groudtruth_onesamp_conv{:,'group'}==groupi);
   groundtruth_loc_arra=groudtruth_onesamp_conv{groupind,1:4};
@@ -393,15 +394,25 @@ for groupi=1:4%the first 4 clusters %(ncompound-1)%ignore DSS
 end
 colorset=struct();
 % colorset.rgb=flip([[0 0 0]; repmat([1 0 0; 0 0 1],[ncompound-1,1])],1);
-colorset.rgb=flip([[0 0 0]; repmat([1 0 0],[2,1]); repmat([0 1 0],[2,1]); repmat([0 0 1],[2,1]); repmat([1 1 0],[2,1])],1);
-colorset.categories=table(flip([{'sum'},{'cluster 1'},{'cluster 2'},{'cluster 3'},{'cluster 4'}]'));
-colorset.colorList=flip([0 0 0; 1 0 0; 0 1 0; 0 0 1; 1 1 0],1);
+% colorset.rgb=flip([[0 0 0]; repmat([1 0 0],[2,1]); repmat([0 1 0],[2,1]); repmat([0 0 1],[2,1]); repmat([1 1 0],[2,1])],1);
+% colorset.categories=table(flip([{'sum'},{'cluster 1'},{'cluster 2'},{'cluster 3'},{'cluster 4'}]'));
+% colorset.colorList=flip([0 0 0; 1 0 0; 0 1 0; 0 0 1; 1 1 0],1);
+colorset.rgb=flip([[0 0 0]; repmat([1 0 0; 0 0 1],[ncluster,1])],1);
+colorset.categories=table(flip([{'sum'},{'truth'},{'estimation'}]'));
+colorset.colorList=flip([0 0 0; 1 0 0; 0 0 1],1);
+% space
+specvec=[0 1];
+for clusteri=1:(ncluster-1)
+  specvec=[specvec specvec(end)+9 specvec(end)+10];
+end
+specvec=[specvec specvec(end)+9]
 %
 region_loc=[6.8 8.6];
 ppmvis_rang=sort(matchPPMs(region_loc,ppm));
 ppmvis_ind=ppmvis_rang(1):ppmvis_rang(2);
 stackmat=flip(stackmat,1);
-stackSpectra(stackmat(:,ppmvis_ind),ppm(ppmvis_ind),0.0,300,['example_stack_plot'],'colors',colorset);
+% stackspec_time(stackmat(:,ppmvis_ind),ppm(ppmvis_ind)',0.0,300,['example_stack_plot'],'timeVect',specvec,'colors',colorset);
+stackSpectra(stackmat(:,ppmvis_ind),ppm(ppmvis_ind)',0.0,300,['example_stack_plot'],'colors',colorset);
 fig=gcf;
 saveas(fig,['stack_clusters.fig']);
 close all;
