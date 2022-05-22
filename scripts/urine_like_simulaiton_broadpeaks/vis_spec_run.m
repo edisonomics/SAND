@@ -182,6 +182,8 @@ for samptype=samptypes
     mse_vec=[];
     corxy_vec=[];
     k_vec=[];
+    corxylambda_vec=[];
+    corxyf_vec=[];
     for simui=subind
       loctab=summtab(summtab{:,'simulation'}==simui,:);
       xvec=loctab{:,'A_true'};
@@ -192,9 +194,12 @@ for samptype=samptypes
       corxy_vec=[corxy_vec corr(xvec,yvec)];
       dlm=fitlm(xvec,yvec,'Intercept',false);
       k_vec=[k_vec dlm.Coefficients.Estimate];
+      %
+      corxylambda_vec=[corxylambda_vec corr(loctab{:,'lambda_true'},loctab{:,'lambda_est'})];
+      corxyf_vec=[corxyf_vec corr(loctab{:,'PPM_true'},loctab{:,'PPM_est'})];
     end
     evalu=struct();
-    for eval_ele={'rel_mse' 'mse' 'corxy' 'k'}
+    for eval_ele={'rel_mse' 'mse' 'corxy' 'k' 'corxylambda' 'corxyf'}
       eval_ele=eval_ele{1};
       locvec=eval([eval_ele '_vec']);
       evalu.(eval_ele)=mean(locvec);
@@ -227,8 +232,18 @@ for samptype=samptypes
     gscatter(summtab{:,'lambda_true'},summtab{:,'lambda_est'},summtab{:,'simulation'},[],[],[20]);
     xlabel('ground truth');
     ylabel('estimation');
-    title([' lambda ']);
+    title([' lambda correlation ' num2str(evalu_str.deconv.corxylambda)]);
   saveas(h,['scatter_simulation' '_' smptypes_str{samptype} '_lambda.fig']);
+  close(h);
+  % PPM estimation
+  h=figure();
+    gscatter(summtab{:,'PPM_true'},summtab{:,'PPM_est'},summtab{:,'simulation'},[],[],[20]);
+    xlabel('ground truth');
+    ylabel('estimation');
+    title([' PPM correlation ' num2str(evalu_str.deconv.corxyf)]);
+    xlim([6.9 8.6]);
+    ylim([6.9 8.6]);
+  saveas(h,['scatter_simulation' '_' smptypes_str{samptype} '_PPM.fig']);
   close(h);
   % corr(summtab{:,'lambda_true'},summtab{:,'lambda_est'})
   % phi estimation
