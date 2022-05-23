@@ -95,7 +95,7 @@ save('temp_store.mat','-v7.3');
 %
 % stack plot decompositon
 % exampregs=[-0.1:0.3:9.2; 0.2:0.3:9.5]';
-exampregs=[7.0 7.5; 7.5 8.0; 8.0 8.5; 1. 1.5; 1.5 2.0; 2.0 2.5]%[7.1 8.5; 1 2.4];
+exampregs=[7.0 7.5; 7.5 8.0; 8.0 8.5; 1. 1.5; 1.5 2.0; 2.0 2.5; 3.6 4.1]%[7.1 8.5; 1 2.4];
 runid=6;
 esttab_loc=cell_para{runid};
 ft_raw=ft_mat(runid,:);
