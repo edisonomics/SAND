@@ -360,9 +360,9 @@ stackmat=[];
 esttab_loc{:,1}=(esttab_loc{:,1}-para_add_list.conv_f(1))*para_add_list.conv_f(2);
 groudtruth_onesamp_conv=groudtruth_onesamp;
 groudtruth_onesamp_conv{:,1}=(groudtruth_onesamp_conv{:,1}-para_add_list.conv_f(1))*para_add_list.conv_f(2);
-% the whole spectrum
-esttab_loc_arra=esttab_loc{:,1:4};
-sumsig=sin_mixture_simu(esttab_loc_arra,timevec_sub_front,nan,'complex');
+% the raw spectrum
+tab_loc_arra=groudtruth_onesamp_conv{:,1:4};
+sumsig=sin_mixture_simu(tab_loc_arra,timevec_sub_front,nan,'complex');
 scalfactor=0.5;
 sumsig(1)=sumsig(1)*scalfactor;
 sumsig=[zeros([shifttimeadd,1]); sumsig];
@@ -398,7 +398,7 @@ colorset=struct();
 % colorset.categories=table(flip([{'sum'},{'cluster 1'},{'cluster 2'},{'cluster 3'},{'cluster 4'}]'));
 % colorset.colorList=flip([0 0 0; 1 0 0; 0 1 0; 0 0 1; 1 1 0],1);
 colorset.rgb=flip([[0 0 0]; repmat([1 0 0; 0 0 1],[ncluster,1])],1);
-colorset.categories=table(flip([{'sum'},{'truth'},{'estimation'}]'));
+colorset.categories=table(flip([{'raw'},{'truth'},{'estimation'}]'));
 colorset.colorList=flip([0 0 0; 1 0 0; 0 0 1],1);
 % space
 specvec=[0 1];
