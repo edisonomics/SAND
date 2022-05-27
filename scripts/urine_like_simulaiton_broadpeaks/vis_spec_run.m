@@ -14,6 +14,7 @@ projdir=[paredir 'result_reproduce/urine_like_simulaiton_broadpeaks/'];
 datadir=[paredir 'data/urine_fitting/'];
 libdir=[datadir 'test_trans.fid'];% a template fid file containing useful header information. https://www.dropbox.com/s/1i0dixw4vasctwu/test_trans.fid?dl=0
 preresdirpath=[projdir 'res/deconv/res/res/'];
+craftdir=[projdir 'res/CRAFT_result/simudata2_CRAFT4YueWu/'];
 cd([projdir]);
 % load original simulation information
 load([projdir 'res/saved_simulation.mat']);
@@ -87,6 +88,27 @@ for sampi=1:nsample
 end
 est_tab.Properties.VariableNames={'PPM','lambda','A','phase','simulation'};
 
+% load CRAFT estimation of different spectra
+est_craft_tab=[];%PPM, lambda, A, simulation_ind
+for sampi=1:nsample
+  sample=sampleseq(sampi);
+  samplestr=num2str(sample);
+  tab_craft=readtable([craftdir samplestr '_fidLL.txt'],'HeaderLines',5);
+  runtab=tab_craft(:,[1,3,2,4]);
+  runtab.Properties.VariableNames={'PPM','lambda','A','phase'};
+  runtab{:,'PPM'}=para_add_list.conv_f(1)*2-runtab{:,'PPM'};%mirror simmetry transform
+  % runtab{:,'PPM'}=(runtab{:,'PPM'}-para_add_list.conv_f(1))*para_add_list.conv_f(2);
+  runtab{:,'phase'}=runtab{:,'phase'}/360*2*pi;
+  nfeature=size(runtab,1);
+  % DSS intenstiy
+  regind=runtab{:,'PPM'}>ppmrange_dss(1) & runtab{:,'PPM'}<ppmrange_dss(2);
+  dssconc=max(runtab{regind,'A'});
+  runtab{:,'A'}=runtab{:,'A'}/dssconc;%normalize to DSS
+  simu=repmat(sampi,[nfeature,1]);
+  runtab=[runtab table(simu)];
+  est_craft_tab=[est_craft_tab; runtab];
+end
+est_craft_tab.Properties.VariableNames={'PPM','lambda','A','phase','simulation'};
 %intensity and integral based estimation
 est_other_tab=[];
 for sampi=1:size(specmat,1)
@@ -114,6 +136,7 @@ est_other_tab.Properties.VariableNames={'PPM','lambda','intensity','integral','p
 %
 quan_str=struct();
 quan_str.deconv=est_tab;
+quan_str.craft=est_craft_tab;
 quan_str.intensity=est_other_tab(:,{'PPM','lambda','intensity','phase','simulation'});
 quan_str.integral=est_other_tab(:,{'PPM','lambda','integral','phase','simulation'});
 % select within interested ppm range
@@ -183,6 +206,7 @@ for samptype=samptypes
     corxy_vec=[];
     k_vec=[];
     corxylambda_vec=[];
+    klambda_vec=[];
     corxyf_vec=[];
     for simui=subind
       loctab=summtab(summtab{:,'simulation'}==simui,:);
@@ -196,10 +220,12 @@ for samptype=samptypes
       k_vec=[k_vec dlm.Coefficients.Estimate];
       %
       corxylambda_vec=[corxylambda_vec corr(loctab{:,'lambda_true'},loctab{:,'lambda_est'})];
+      dlm=fitlm(loctab{:,'lambda_true'},loctab{:,'lambda_est'},'Intercept',false);
+      klambda_vec=[klambda_vec dlm.Coefficients.Estimate];
       corxyf_vec=[corxyf_vec corr(loctab{:,'PPM_true'},loctab{:,'PPM_est'})];
     end
     evalu=struct();
-    for eval_ele={'rel_mse' 'mse' 'corxy' 'k' 'corxylambda' 'corxyf'}
+    for eval_ele={'rel_mse' 'mse' 'corxy' 'k' 'corxylambda' 'corxyf' 'klambda'}
       eval_ele=eval_ele{1};
       locvec=eval([eval_ele '_vec']);
       evalu.(eval_ele)=mean(locvec);
@@ -226,16 +252,16 @@ for samptype=samptypes
     type=type{1};
     rec_ratio_vec=[rec_ratio_vec mean(summ_str.(type).rec_ratio)];
   end
-  % lambda estimation
+  % lambda estimation decompositon
   summtab=summ_str.deconv.summtab;
   h=figure();
     gscatter(summtab{:,'lambda_true'},summtab{:,'lambda_est'},summtab{:,'simulation'},[],[],[20]);
     xlabel('ground truth');
     ylabel('estimation');
-    title([' lambda correlation ' num2str(evalu_str.deconv.corxylambda)]);
+    title([' lambda correlation ' num2str(evalu_str.deconv.corxylambda) ' k ' num2str(evalu_str.deconv.klambda)]);
   saveas(h,['scatter_simulation' '_' smptypes_str{samptype} '_lambda.fig']);
   close(h);
-  % PPM estimation
+  % PPM estimation decompositon
   h=figure();
     gscatter(summtab{:,'PPM_true'},summtab{:,'PPM_est'},summtab{:,'simulation'},[],[],[20]);
     xlabel('ground truth');
@@ -244,6 +270,25 @@ for samptype=samptypes
     xlim([6.9 8.6]);
     ylim([6.9 8.6]);
   saveas(h,['scatter_simulation' '_' smptypes_str{samptype} '_PPM.fig']);
+  close(h);
+  % lambda estimation craft
+  summtab=summ_str.craft.summtab;
+  h=figure();
+    gscatter(summtab{:,'lambda_true'},summtab{:,'lambda_est'},summtab{:,'simulation'},[],[],[20]);
+    xlabel('ground truth');
+    ylabel('estimation');
+    title([' lambda correlation ' num2str(evalu_str.craft.corxylambda) ' k ' num2str(evalu_str.craft.klambda)]);
+  saveas(h,['scatter_simulation' '_' smptypes_str{samptype} '_lambda_craft.fig']);
+  close(h);
+  % PPM estimation craft
+  h=figure();
+    gscatter(summtab{:,'PPM_true'},summtab{:,'PPM_est'},summtab{:,'simulation'},[],[],[20]);
+    xlabel('ground truth');
+    ylabel('estimation');
+    title([' PPM correlation ' num2str(evalu_str.craft.corxyf)]);
+    xlim([6.9 8.6]);
+    ylim([6.9 8.6]);
+  saveas(h,['scatter_simulation' '_' smptypes_str{samptype} '_PPM_craft.fig']);
   close(h);
   % corr(summtab{:,'lambda_true'},summtab{:,'lambda_est'})
   % phi estimation
