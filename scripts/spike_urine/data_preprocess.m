@@ -14,7 +14,7 @@ addpath(genpath(localPaths.public_toolbox));
 addpath(genpath(localPaths.nmrdecomp_path));
 pause(1),clc
 % the path should be changed accordingly in the users' computer
-paredir='/lustre2/scratch/yw44924/urine_spikin/'
+paredir='/lustre2/scratch/yw44924/urine_spikin2/'
 datadir=[paredir 'data/'];
 rundir=[paredir];
 pipescriptdir=[localPaths.nmrdecomp_path 'scripts/spike_urine/pipe_script/'];
@@ -44,9 +44,9 @@ mkdir('./urine_fid');
 mkdir('./bin');
 copyfile([pipescriptdir '*'],'./nmrpipe_dir/script/');
 %
-meta_tab=readtable([datadir '20220513_Yue_spike-in_log.xlsx']);
+meta_tab=readtable([datadir '20220525_Yue_spike-in_log.xlsx']);
 nsample=size(meta_tab,1);
-rawdatadir=[datadir '20220513_Yue_spike-in/'];
+rawdatadir=[datadir];
 % get the local folder list
 cd(rawdatadir);
 c=strread(ls,'%s');
@@ -54,7 +54,7 @@ c=sort(cellfun(@str2num,c(find(~(cellfun(@isempty,regexp(c,'^\d+$')))))));
 datafds=num2str(c);
 cd([rundir '/res/']);
 %
-meta_tab=addvars(meta_tab,datafds,'After','Yvec');
+meta_tab=addvars(meta_tab,datafds,'After','File_number');
 % formulate the nmrpipe folder
 nmrpipe=['nmrpipe_dir/'];
 for rowi=1:nsample
