@@ -384,7 +384,8 @@ for ppm_min_i=1:length(ppm_match_ind1)
     ind_est=[ind_est ppm_min_i];
   end
 end
-%
+save('temp_store.mat','-v7.3');
+% cluster plot 1
 matchratio=[];
 visregion=[0 2.44; 4 8];
 for compd=fieldnames(purespec_str)'
@@ -441,3 +442,58 @@ for compd=fieldnames(purespec_str)'
     close(fig);
   end
 end
+% cluster scatter plot
+locregion=[0 2.44];
+stackmat=[];
+% mixture spectra
+purespeci=[purespec_str.Ibuprofen purespec_str.Prednesone];
+mixspeci=setdiff(sampleseq,purespeci);
+for speci=mixspeci
+  stackmat=[stackmat; ftstr{speci}{:,2}'];
+end
+%
+for compd=fieldnames(purespec_str)'
+  compd=compd{1};
+  % pure spectra
+  sampplot_inds=purespec_str.(compd);
+  ft_ori_mat=[];
+  for puresampind=sampplot_inds
+    ppmori=ppmstr{puresampind};
+    ft_ori_mat=[ft_ori_mat ftstr{puresampind}{:,2}];
+  end
+  stackmat=[stackmat; ft_ori_mat'];
+  % compound cluster
+  compdind=find(strcmp(groudtruth_onesamp{:,'compounds'},compd));
+  clusind=intersect(ind_true,compdind);
+  tabsumm_refine2_sele=groudtruth_onesamp{clusind,1:4};
+  tabsumm_refine2_sele(:,1)=(tabsumm_refine2_sele(:,1)-para_add_list.conv_f(1))*para_add_list.conv_f(2);
+  sumsig=sin_mixture_simu(tabsumm_refine2_sele,timevec_sub_front',0.0,'complex');
+  scalfactor=0.5;
+  sumsig(1)=sumsig(1)*scalfactor;
+  sumsig=[zeros([1,shifttimeadd]) sumsig];
+  spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig)',imag(sumsig)'),preheadpath,'temp');
+  new_spec_vec2=spec_new_sum{:,2};
+  % scaling
+  newinten=ft_ori_mat(:,1);
+  ppmignore=[2.2 3.5];
+  igreg=sort(matchPPMs(ppmignore,ppmori));
+  newinten_reg=newinten([1:igreg(1) igreg(2):length(newinten)]);
+  int_conv_fac=max(new_spec_vec2)/max(newinten_reg);
+  %
+  stackmat=[stackmat; new_spec_vec2'/int_conv_fac];
+end
+colorset=struct();
+colorset.rgb=flip([repmat([0.2 0.2 0.2],[length(mixspeci),1]); repmat([repmat([1 0 0],[3,1]); [0 0 1]],[2,1])],1);
+colorset.categories=table(flip([{'mixtures'},{'pure'},{'cluster'}]'));
+colorset.colorList=flip([0.2 0.2 0.2; 1 0 0; 0 0 1],1);
+% space
+specvec=[1 1.1+(0.01:0.01:0.03) 2 2.1+(0.01:0.01:0.03) 3+(0.0:0.01:0.26)];
+%
+reg2=sort(matchPPMs(locregion,ppm));
+ppmvis_ind=reg2(1):reg2(2);
+stackmat=flip(stackmat,1);
+% stackSpectra(stackmat(:,ppmvis_ind),ppm(ppmvis_ind),0.0,50,['example region'],'colors',colorset);
+stackspec_time(stackmat(:,ppmvis_ind),ppm(ppmvis_ind)',0.0,500,['example region'],'timeVect',specvec,'colors',colorset);
+fig=gcf;
+saveas(fig,['stack_example_region_sele.fig']);
+close all;
