@@ -13,9 +13,9 @@ paredir='/Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/
 projdir=[paredir 'result_reproduce/urine_spikin/'];
 datadir=[paredir 'data/'];
 libdir=[datadir 'test_trans.fid'];% a template fid file containing useful header information. https://www.dropbox.com/s/1i0dixw4vasctwu/test_trans.fid?dl=0
-preresdirpath=[projdir 'res/res/deconv/res/'];
+preresdirpath=[projdir 'res/res/'];
 cd([projdir]);
-load([projdir 'res/res/saved_preprocessing.mat']);
+load([projdir 'res/saved_preprocessing.mat']);
 specppm=ppm_r;
 %
 sampleseq=1:nsample;
@@ -42,9 +42,6 @@ save('performance_eval.mat','tab_eval');
 mean(log10(tab_eval{:,'obj_refine'}))
 % mean time
 mean(tab_eval{:,'time_cost'})
-% meta data table
-readtable=readtable([projdir 'data/sample_info_all_groups.xlsx']);
-% tabulate(readtable{:,'Sample_grp'})
 % load raw FT of all samples
 ft_mat=[];
 for runid=sampleseq
@@ -57,232 +54,289 @@ fig=figure();
 plotr(ppm,ft_mat);
 savefig(fig,['ft_all_sample_stack.fig']);
 close all;
-% load deconvoluted data and formulate into list
-ppmlist={};
-Alist={};
-lamblist={};
+
+stackSpectra(ft_mat,ppm,0,50,'all stack')
+fig=gcf;
+saveas(fig,['stack_all_sample.fig']);
+close all;
+% load decomposation estimation of different spectra
 namelist={};
-binlist={};
-cell_para={};
-mat_simu_spec=[];
-for runid=sampleseq
-  sampi_str=num2str(runid)
-  load([preresdirpath sampi_str '/runid' sampi_str '_refine_res.mat']);
-  load([preresdirpath sampi_str '/runid' sampi_str '_trainingdata.mat']);
-  % the table: f, lambda, A, phi
-  ppmvec=tabsumm_refine(:,1)/para_add_list.conv_f(2)+para_add_list.conv_f(1);
-  [ppmvec_sort sortind]=sort(ppmvec);
-  ppmlist=[ppmlist; ppmvec_sort'];
-  Alist=[Alist; tabsumm_refine(sortind,3)'];
-  lamblist=[lamblist; tabsumm_refine(sortind,2)'];
-  namelist=[namelist; {repmat({'unknown'},[1,length(ppmvec)])}];
-  binlist=[binlist; rangetab{:,[4,5]}];
-  cell_para=[cell_para; tabsumm_refine(sortind,:)];
-  mat_simu_spec=[mat_simu_spec new_spec_vec];
+est_tab=[];%PPM, lambda, A, simulation_ind
+ppmstr={};
+ftstr={};
+for sampi=sampleseq
+  samplestr=num2str(sampi);
+  load([preresdirpath samplestr '/runid' samplestr '_env_final.mat']);
+  runtab=array2table(tabsumm_refine,'VariableNames',{'PPM','lambda','A','phase'});%f, lambda, A, phi
+  nfeature=size(runtab,1);
+  runtab{:,'PPM'}=runtab{:,'PPM'}/para_add_list.conv_f(2)+para_add_list.conv_f(1);
+  simu=repmat(sampi,[nfeature,1]);
+  runtab=[runtab table(simu)];
+  namelist=[namelist; {repmat({'unknown'},[1,nfeature])}];
+  est_tab=[est_tab; runtab];
+  ppmstr{sampi}=ppm;
+  ftstr{sampi}=ft_ori_tab;
 end
-mat_simu_spec=mat_simu_spec';
-% selected interesting regions
-ft_mat_sub=[];
-% simu_mat_sub=[];
-% window_ppm=[-0.1 10];
-% for i=1:length(delt_ppm)
-%   delt=delt_ppm(i);
-%   intvec=ft_mat(i,:);
-%   simu_int=mat_simu_spec(i,:);
-%   ppmshiftr=window_ppm-delt;%shift the ppm frame instead
-%   windind=sort(matchPPMs(ppmshiftr,ppm));
-%   ft_mat_ref=[ft_mat_ref; intvec(windind(1):windind(2))];
-%   simu_mat_align=[simu_mat_align; simu_int(windind(1):windind(2))];
-% end
+est_tab.Properties.VariableNames={'PPM','lambda','A','phase','simulation'};
 
-windowppm=flip(window_ppm(1):((window_ppm(2)-window_ppm(1))/(size(ft_mat_ref,2)-1)):window_ppm(2));
-fig=figure();
-plotr(windowppm,ft_mat_ref);
-savefig(fig,['ft_all_sample_ref.fig']);
-close all;
-fig=figure();
-plotr(windowppm,simu_mat_align);
-savefig(fig,['deconv_all_sample_ref.fig']);
-close all;
-save('deconv_res.mat','ppmlist','namelist','Alist','lamblist','binlist','cell_para','sampvec','simu_mat_align','ppm','windowppm','meta_tab_new');
-save('temp_store.mat');
-%
-ft_mat_ref=remove_region(ft_mat_ref,ppm,4.893,4.683);
-% Normalization using probabilistic quotient normalization (PQN) method
-ft_mat_ref_n=normalize(ft_mat_ref,ppm,'PQN');
-normcheck(ft_mat_ref_n)
-fig=gcf;
-saveas(fig,['normalcheck_after.fig'])
-close all;
-displaypeak1D(ft_mat_ref_n,ppm,0,Yvec_meta);
-fig=gcf;
-saveas(fig,['spectra_normalized.fig'])
-close all;
-ppm_XALN_PQN=vertcat(ppm,ft_mat_ref_n);
-csvwrite('class_PQN.csv',ppm_XALN_PQN')
-% PCA plot
-%% Scale using 'logoff'
-ft_mat_ref_n_s=scale(ft_mat_ref_n,'logoff');
-varcheck(ft_mat_ref_n_s)
-
-
-sel=[1,2];%the two groups: Control and Pure Clear Cell RCC
-[Sub_XALNS2,SubT]=subset_X(XALNS2,metatab,sel,'Y');
-Yvec_meta_pca=SubT.Yvec;
-%% Run a Principal Component Analysis with 5 components using logoff for scaling
-PCA2logoff=nipalsPCA(Sub_XALNS2,5);
-close all;
-VisScores(Sub_XALNS2,PCA2logoff,[1 2],'Y',Yvec_meta_pca,'conf_ellipse',false, 'showlegend', SubT.Sample_grp);
-fig=gcf;
-saveas(fig,['score_1_2.fig'])
-close all;
-VisLoadings1D(Sub_XALNS2,PCA2logoff.loadings(1,:),ppmR)
-fig=gcf;
-saveas(fig,['loading_1_2.fig'])
-close all;
-
-% match peaks based on ppm distance within groups
-deltapm_threshold=0.02;%distance threshold for peak matching
-selec_ind=find(contains(sampvec,['PD1074']));
-addstr='';
-%
-ppmlist_selec=ppmlist(selec_ind);
-namelist_selec=namelist(selec_ind);
-Alist_selec=Alist(selec_ind);
-lamblist_selec=lamblist(selec_ind);
-binlist_selec=binlist(selec_ind);
-cell_para_selec=cell_para(selec_ind);
-% storage
-X=ft_mat_align(selec_ind,:); % original spectral matrix
-% plotr(windowppm,X);
-stackSpectra(X,windowppm,-0.005,20,'alignedspec');
-fig=gcf;
-savefig(fig,['d1074_ref.fig']);
-close all;
-save(['data_to_reorder' addstr '.mat'],'X','windowppm');
-
-% match peaks with no reorder
-[ppmmatch_ind_all_nonshift ppmvec_nonshift]=ppm_list_match(ppmlist_selec_nonshift,namelist_selec_nonshift,'^unknown$',deltapm_threshold);
-% update the index in the submatrix of non-reordered peaks
-for sampi=1:nsample_group
-  peakall=ppmlist_selec{sampi};
-  mody_ind=ppmmatch_ind_all_nonshift(sampi,:);
-  ind_reorder=ppmmatch_ind_all_reorder(sampi,:);
-  ind_reorder=ind_reorder(~isnan(ind_reorder));
-  rem_ind=sort(unique(ind_reorder));%one deconvolted peak might match tp mutiple reordered ppm by ppm distance
-  lenmatch=length(rem_ind);
-  reglen=diff([1 rem_ind]);
-  chan_ind_vec=repelem(0:lenmatch,[reglen length(peakall)-sum(reglen)]);
-  chan_ind_vec(rem_ind)=[];
-  mody_ind=mody_ind+chan_ind_vec(mody_ind);
-  ppmmatch_ind_all_nonshift(sampi,:)=mody_ind;
+%intensity and integral based estimation
+est_other_tab=[];
+for sampi=sampleseq
+  spec_here=specmat(sampi,:);
+  runtab=[];
+  samplestr=num2str(sampi);
+  load([preresdirpath samplestr '/runid' samplestr '_env_final.mat']);
+  for bini=1:size(binrange,1)
+    ppmrange=binrange(bini,:);
+    [indrang]=sort(matchPPMs(ppmrange,specppm));
+    indseq=indrang(1):indrang(2);
+    spec_reg_shift=spec_here(indseq);
+    baseval=min(spec_reg_shift);
+    % baseval=0;
+    [est_inten maxind]=max(spec_reg_shift-baseval);
+    est_auc=trapz(spec_reg_shift-baseval);
+    est_temp_tab=table(specppm(indrang(1)+maxind-1),nan,est_inten,est_auc,0,sampi);
+    runtab=[runtab; est_temp_tab];
+  end
+  est_other_tab=[est_other_tab; runtab];
 end
+est_other_tab.Properties.VariableNames={'PPM','lambda','intensity','integral','phase','simulation'};
 %
-ppmmatch_ind_all=[ppmmatch_ind_all_reorder ppmmatch_ind_all_nonshift];
-ppmvec=[ppmvec_reorder ppmvec_nonshift];
+quan_str=struct();
+quan_str.deconv=est_tab;
+quan_str.intensity=est_other_tab(:,{'PPM','lambda','intensity','phase','simulation'});
+quan_str.integral=est_other_tab(:,{'PPM','lambda','integral','phase','simulation'});
 %
-ppmmatch_ind_all_expand=ppmmatch_ind_all;
-ppmvec_expand=ppmvec;
-% remove NA features
-naind=sum(isnan(ppmmatch_ind_all),1)>0;
-ppmmatch_ind_all=ppmmatch_ind_all(:,~naind);
-ppmvec=ppmvec(~naind);
-%formulate other information matrix based on the ppm index
-% without nan
+selerange=[-0.5 9];% considered ppm range
+dssragne=[-0.5 0.5];
+% ratios
+spike_ratio=[0,1,2,3,4];%ratio for spike-in compounds
+dss_ratio=(1/9+0.4*[0:4])/(1/9+0.4);%ratio for dss
+% convert factors
+gt_ratio=spike_ratio.*spike_ratio./dss_ratio;
+est_ratio=spike_ratio;
+% group ind
+mixseq=[2:5];%mixutres
+purespec_str.ref=[6];%reference
+remreg=[4.66 4.95];
+for type=fieldnames(quan_str)'
+  type=type{1};
+  tempdata=quan_str.(type);
+  rowind_ppm=find(tempdata{:,'PPM'}>selerange(1)&tempdata{:,'PPM'}<selerange(2));
+  tempdata=tempdata(rowind_ppm,:);
+  %
+  remind=[];
+  for sampi=1:nsample
+    sampind=find(tempdata{:,'simulation'}==sampi);
+    samp_tab=tempdata(sampind,:);
+    regind=find(samp_tab{:,'PPM'}>remreg(1)&samp_tab{:,'PPM'}<remreg(2));
+    remind=[remind sampind(regind)'];
+  end
+  tempdata(remind,:)=[];
+  % scale by dss peak and convert ratios
+  for sampi=1:nsample
+    sampind=find(tempdata{:,'simulation'}==sampi);
+    loctab=tempdata(sampind,:);
+    dssrangind=loctab{:,1}>dssragne(1)&loctab{:,1}<dssragne(2);
+    a_dss=max(loctab{dssrangind,3});
+    loctab{:,3}=loctab{:,3}/a_dss;
+    if ismember(sampi,mixseq)
+      loctab{~dssrangind,3}=loctab{~dssrangind,3}*est_ratio(sampi);
+      loctab{dssrangind,3}=loctab{dssrangind,3}*dss_ratio(sampi);
+    end
+    tempdata(sampind,:)=loctab;
+  end
+  %
+  quan_str.(type)=tempdata;
+end
+% calculate ground truth from the reference spectra
+summ_str=struct();
+groundtruth_str=struct();
+ground_peak_n=200;
+for type=fieldnames(quan_str)'
+  type=type{1};
+  % ground truth peak list
+  groundtruth_peak=[];
+  locseq=purespec_str.ref;
+  quantab=quan_str.(type);
+  locpeakind=quantab{:,'simulation'}==locseq;
+  groundtruth_peak=[groundtruth_peak; [quantab(locpeakind,1:4) table(repmat({'unknown'},[length(find(locpeakind)),1]))]];
+  groundtruth_peak.Properties.VariableNames={'PPM','lambda','A_rela','phase','compounds'};
+  [~,indsort]=sort(groundtruth_peak{:,3},'descend');
+  groundtruth_peak=groundtruth_peak(indsort(1:ground_peak_n),:);
+  % calculate ground truth A of peaks in each sample
+  groundtruth_tab=[];
+  for sampi=mixseq
+    locpeak_tab=groundtruth_peak;
+    locpeak_tab{:,'A_rela'}=locpeak_tab{:,'A_rela'}*gt_ratio(sampi);
+    locsavetabes=locpeak_tab(:,{'PPM','lambda','A_rela','phase','compounds'});
+    locsavetabes=addvars(locsavetabes,repmat(sampi,[size(locsavetabes,1),1]),'After','phase');
+    groundtruth_tab=[groundtruth_tab; locsavetabes];
+  end
+  groundtruth_tab.Properties.VariableNames={'PPM','lambda','A','phase','simulation','compounds'};
+  groundtruth_str.(type)=groundtruth_tab;
+  % match estimation with ground truth
+  summtab=[];
+  rec_ratio=[];
+  est_tab_temp=quan_str.(type);
+  est_tab_temp.Properties.VariableNames={'PPM','lambda','A','phase','simulation'};
+  for simui=mixseq
+    subtab_est=est_tab_temp(est_tab_temp{:,'simulation'}==simui,:);
+    subtab_true=groundtruth_tab(groundtruth_tab{:,'simulation'}==simui,:);
+    distmat=abs(pdist2(subtab_est{:,'PPM'},subtab_true{:,'PPM'}));
+    %%%selecting out ppm points that are pairwise closest to each other
+    [ppm_match_val1,ppm_match_ind1]=min(distmat,[],2);
+    [ppm_match_val2,ppm_match_ind2]=min(distmat,[],1);
+    ind_true=[];
+    ind_est=[];
+    ppm_match_val=[];
+    for ppm_min_i=1:length(ppm_match_ind1)
+      if ppm_match_ind2(ppm_match_ind1(ppm_min_i))==ppm_min_i%check for pairwise match
+        ppm_match_val=[ppm_match_val ppm_match_val1(ppm_min_i)];
+        ind_true=[ind_true ppm_match_ind1(ppm_min_i)];
+        ind_est=[ind_est ppm_min_i];
+      end
+    end
+    % filter by ppm distances
+    thres_ind=find(ppm_match_val<deltapm_threshold);
+    ind_est=ind_est(thres_ind);
+    ind_true=ind_true(thres_ind);
+    subtab_est_match=subtab_est(ind_est,{'PPM','A','lambda','phase'});
+    subtab_est_match.Properties.VariableNames={'PPM_est','A_est','lambda_est','phase_est'};
+    subtab_true_match=subtab_true(ind_true,{'PPM','A','lambda','phase','simulation'});
+    subtab_true_match.Properties.VariableNames={'PPM_true','A_true','lambda_true','phase_true','simulation'};
+    summtab=[summtab; [subtab_est_match subtab_true_match]];
+    rec_ratio=[rec_ratio size(subtab_est_match,1)/size(subtab_true,1)];
+  end
+  tempstr=struct();
+  [~,sortind]=sort(summtab{:,'A_true'},'descend');
+  tempstr.summtab=summtab;
+  tempstr.rec_ratio=rec_ratio;
+  summ_str.(type)=tempstr;
+end
+% calculate evaluations
+evalu_str=struct();
+for type=fieldnames(quan_str)'
+  type=type{1};
+  summtab=summ_str.(type).summtab;
+  rel_mse_vec=[];
+  mse_vec=[];
+  corxy_vec=[];
+  k_vec=[];
+  for simui=mixseq
+    loctab=summtab(summtab{:,'simulation'}==simui,:);
+    xvec=loctab{:,'A_true'};
+    yvec=loctab{:,'A_est'};
+    ndata=length(xvec);
+    rel_mse_vec=[rel_mse_vec sum(((xvec-yvec)./mean([xvec yvec],2)).^2)/ndata];
+    mse_vec=[mse_vec sum((xvec-yvec).^2)/ndata];
+    corxy_vec=[corxy_vec corr(xvec,yvec)];
+    dlm=fitlm(xvec,yvec,'Intercept',false);
+    k_vec=[k_vec dlm.Coefficients.Estimate];
+  end
+  evalu=struct();
+  for eval_ele={'rel_mse' 'mse' 'corxy' 'k'}
+    eval_ele=eval_ele{1};
+    locvec=eval([eval_ele '_vec']);
+    evalu.(eval_ele)=mean(locvec);
+    evalu.([eval_ele '_ste'])=std(locvec)/sqrt(length(locvec));
+  end
+  evalu_str.(type)=evalu;
+end
+% make the table
+evalu_tab=cell2table(cell(0,5),'VariableNames',{'rel_mse','mse','corxy','k', 'quan_method'});
+for methele=fieldnames(evalu_str)'
+  methele=methele{1};
+  loctab=struct2table(evalu_str.(methele));
+  loctab=[loctab(:,{'rel_mse','mse','corxy','k'}) table({methele},'VariableNames',{'quan_method'})];
+  evalu_tab=[evalu_tab; loctab];
+end
+save('evaluation.mat','evalu_str','evalu_tab');
+writetable(evalu_tab,'stat_tab.txt');
+
+% scattter plot
+for type=fieldnames(summ_str)'
+  type=type{1};
+  summtab=summ_str.(type).summtab;
+  evalu=evalu_str.(type);
+  h=figure();
+    gscatter(log10(summtab{:,'A_true'}),log10(summtab{:,'A_est'}),summtab{:,'simulation'},[],[],[20]);
+    xlabel('ground truth');
+    ylabel('estimation');
+    title([type ' correlation ' num2str(evalu.corxy), ' mse ' num2str(evalu.mse) ' k ' num2str(evalu.k)]);
+  saveas(h,['scatter_simulation.' type 'log10.fig']);
+  close(h);
+end
+
+% correlation network
+%% match peaks from different samples
+ppmlist={};
+namelist={};
+intlist={};
+est_tab_deconv=quan_str.deconv;
+est_tab_dec_subset={};
+groundtruth_tab_deconv=groundtruth_str.deconv;
+for runid=mixseq
+  loctab=est_tab_deconv(est_tab_deconv{:,'simulation'}==runid,:);
+  ppmlist=[ppmlist loctab{:,'PPM'}'];
+  namelist=[namelist {repmat({'unknown'},[1,size(loctab,1)])}];
+  intlist=[intlist loctab{:,'A'}];
+  est_tab_dec_subset=[est_tab_dec_subset {loctab}];
+end
+[ppmmatch_ind_all ppmvec]=ppm_list_match(ppmlist',namelist,'^unknown$',deltapm_threshold);
 mat_reshape_all=[];
-ppm_all=[];
-lambda_all=[];
-cell_para_all={};
 for isample=1:size(ppmmatch_ind_all,1)
-  intenmat=Alist_selec{isample};
-  ppmmatele=ppmlist_selec{isample};
-  lammat=lamblist_selec{isample};
-  locatab=cell_para_selec{isample};
+  intenvec=intlist{isample};
   ppmind=ppmmatch_ind_all(isample,:);
-  mat_reshape_all=[mat_reshape_all; intenmat(ppmind)];
-  ppm_all=[ppm_all; ppmmatele(ppmind)];
-  lambda_all=[lambda_all; lammat(ppmind)];
-  cell_para_all=[cell_para_all; locatab(ppmind,:)];
+  intenarray=intenvec(ppmind);
+  mat_reshape_all=[mat_reshape_all; intenarray'];
+  est_tab_dec_subset{isample}=est_tab_dec_subset{isample}(ppmind,:);
 end
-% with nan
-mat_reshape_all_expand=nan(size(ppmmatch_ind_all_expand));
-ppm_all_expand=mat_reshape_all_expand;
-for isample=1:size(ppmmatch_ind_all_expand,1)
-  intenmat=Alist_selec{isample};
-  ppmmatele=ppmlist_selec{isample};
-  ppmind=ppmmatch_ind_all_expand(isample,:);
-  no_nanind=find(~isnan(ppmind));
-  mat_reshape_all_expand(isample,no_nanind)=intenmat(ppmind(no_nanind));
-  ppm_all_expand(isample,no_nanind)=ppmmatele(ppmind(no_nanind));
+%% match with ground truth peak sets
+subtab_true=groundtruth_tab_deconv(groundtruth_tab_deconv{:,'simulation'}==mixseq(1),:);
+distmat=abs(pdist2(ppmvec',subtab_true{:,'PPM'}));
+[ppm_match_val1,ppm_match_ind1]=min(distmat,[],2);
+[ppm_match_val2,ppm_match_ind2]=min(distmat,[],1);
+ind_true=[];
+ind_est=[];
+for ppm_min_i=1:length(ppm_match_ind1)
+  if ppm_match_ind2(ppm_match_ind1(ppm_min_i))==ppm_min_i%check for pairwise match
+    ind_true=[ind_true ppm_match_ind1(ppm_min_i)];
+    ind_est=[ind_est ppm_min_i];
+  end
 end
-% replace nan with reasonable values
-for ipeak=1:size(ppmmatch_ind_all_expand,2)
-  peakintvec=mat_reshape_all_expand(:,ipeak);
-  nanmask=isnan(peakintvec);
-  mat_reshape_all_expand(nanmask,ipeak)=min(peakintvec(~nanmask));
-  ppm_all_expand(nanmask,ipeak)=mean(ppm_all_expand(~nanmask,ipeak));
+mat_reshape_all=mat_reshape_all(:,ind_est);
+ppmvec=ppmvec(ind_est);
+for runid=1:length(est_tab_dec_subset)
+  est_tab_dec_subset{runid}=est_tab_dec_subset{runid}(ind_est,:);
 end
+%
 namesall=strcat({'unknown'},cellstr(num2str(ppmvec'))');
-namesall_expand=strcat({'unknown'},cellstr(num2str(ppmvec_expand'))');
-save(['store_spec' addstr '.mat'],'ft_mat_align','windowppm','selec_ind','ppmmatch_ind_all','ppmvec','mat_reshape_all','ppm_all','lambda_all','cell_para_all','ppmmatch_ind_all_expand','mat_reshape_all_expand','ppm_all_expand','namesall_expand','ppmvec_expand');
-save('ppm_vec.mat','ppmvec_expand','namesall_expand');
-%%plotting check
-samplabel=[{'ref3'},string(selec_ind')];
-timevec=fid_cell{1}{:,1};
-ntime=length(timevec);
-shifttimeadd=76;
-preind=(shifttimeadd+1):ntime;
-timevec_sub_front=timevec(preind)-timevec(preind(1));
-% the spectra part
-spec_mat=[];
-for isample=1:size(ppmmatch_ind_all_expand,1)
-  tabsumm_refine=cell_para_selec{isample};
-  sumsig=sin_mixture_simu(tabsumm_refine,timevec_sub_front,nan,'complex');
-  scalfactor=0.5;
-  sumsig(1)=sumsig(1)*scalfactor;
-  sumsig=[zeros([shifttimeadd,1]); sumsig];
-  spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig),imag(sumsig)),[datadir 'test_trans.fid'],num2str(isample));
-  new_spec_vec=spec_new_sum{:,2}';
-  spec_mat=[spec_mat; new_spec_vec];
+%% correlation network
+threhold_corr=0.9;
+cor_intensity=corr(mat_reshape_all,mat_reshape_all,'Type','Spearman');
+indmat=zeros(size(cor_intensity));
+lenmat=size(cor_intensity,1);
+for i=1:lenmat
+  indmat(i,(i+1):lenmat)=1;
 end
-spec_mat=[zeros([1,size(spec_mat,2)]);spec_mat];
-save(['spec_recon_store' addstr '.mat'],'spec_mat');
-% formulate the peak structure
-% get the ppm of the show points
-peakshere=struct();
-for sampi=1:size(ppmmatch_ind_all_expand,1)
-  spec_samp=spec_mat(1+sampi,:);
-  ppm_matched=ppm_all_expand(sampi,:);
-  colind=matchPPMs(ppm_matched,ppm);
-  inten_matched=spec_samp(colind);
-  for peaki=1:size(ppmmatch_ind_all_expand,2)
-    if length(peakshere)<peaki || length(fieldnames(peakshere(peaki)))==0
-      peakshere(peaki).Ridges=[-1];
-      peakshere(peaki).RowInds=[1];
-      peakshere(peaki).RidgeIntensities=[0];
-      peakshere(peaki).CompoundNames={'unknown'};
-      peakshere(peaki).quantifiable={'Y'};
-    end
-    peakshere(peaki).Ridges=[peakshere(peaki).Ridges ppm_matched(peaki)];
-    peakshere(peaki).RowInds=[peakshere(peaki).RowInds sampi+1];
-    peakshere(peaki).RidgeIntensities=[peakshere(peaki).RidgeIntensities inten_matched(peaki)];
-    peakshere(peaki).CompoundNames=[peakshere(peaki).CompoundNames 'unknown'];
-    peakshere(peaki).quantifiable=[peakshere(peaki).quantifiable 'Y'];
-  end
+triaind=find(indmat);
+cor_intensity_triag_vec=cor_intensity(triaind);
+cor_intensity_triag=cor_intensity;
+cor_intensity_triag(~indmat)=0;
+%%edge threhold
+thres_display_vec_inten=0.9
+%%%positive correlation of intensity
+[rowind colind]=find(cor_intensity_triag>=thres_display_vec_inten);
+node1={};
+node2={};
+correlation=[];
+for elei=1:length(rowind)
+  roweleind=rowind(elei);
+  coleleind=colind(elei);
+  node1{elei}=namesall{roweleind};
+  node2{elei}=namesall{coleleind};
+  correlation(elei)=cor_intensity_triag(roweleind,coleleind);
 end
-spec_mat_flip=flip(spec_mat,1);
-peakshere_flip=peakshere;
-names=fieldnames(peakshere);
-for peaki=1:size(peakshere,2)
-  for namei=1:length(names)
-    name=names{namei};
-    if ~strcmp(name,'RowInds')
-      peakshere_flip(peaki).(name)=flip(peakshere(peaki).(name));
-    end
-  end
-end
-samplabel_flip=flip(samplabel);
-fig=stackSpectra_paintRidges_3return(spec_mat_flip,ppm,-0.00,0.005,'',peakshere_flip,10);
-set(gcf,'Visible','on');
-saveas(fig,['PD1074_peak_match' addstr '.fig']);
-close all;
+cornet_table_corr=table(node1',node2',correlation','VariableNames',{'source' 'target' 'association'});
+writetable(cornet_table_corr,'deconv_corr_thres0_9.txt','Delimiter','\t');
