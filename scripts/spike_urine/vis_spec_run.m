@@ -20,7 +20,7 @@ specppm=ppm_r;
 %
 sampleseq=1:nsample;
 ppmrange_dss=[-0.1 0.1];
-deltapm_threshold=0.002;%distance threshold for peak matching
+deltapm_threshold=0.01;%distance threshold for peak matching
 % vis check of the deconv
 for i=sampleseq
   foldpath=[preresdirpath num2str(i) '/'];
@@ -108,17 +108,18 @@ quan_str.intensity=est_other_tab(:,{'PPM','lambda','intensity','phase','simulati
 quan_str.integral=est_other_tab(:,{'PPM','lambda','integral','phase','simulation'});
 %
 selerange=[-0.5 9];% considered ppm range
-dssragne=[-0.5 0.5];
+dssrange=[-0.5 0.5];
 % ratios
 spike_ratio=[0,1,2,3,4];%ratio for spike-in compounds
-dss_ratio=(1/9+0.4*[0:4])/(1/9+0.4);%ratio for dss
+dss_ratio=(1/9*0.06+0.4*spike_ratio)/(1/9*0.06+0.4);%ratio for dss
 % convert factors
 gt_ratio=spike_ratio.*spike_ratio./dss_ratio;
 est_ratio=spike_ratio;
 % group ind
 mixseq=[2:5];%mixutres
-purespec_str.ref=[6];%reference
-remreg=[4.66 4.95];
+mixseq=[4:5];%remove the low concentration sample
+purespec_str.ref=[6];%reference sample
+remreg=[4.66 4.95];% the water region to remove
 for type=fieldnames(quan_str)'
   type=type{1};
   tempdata=quan_str.(type);
@@ -133,23 +134,29 @@ for type=fieldnames(quan_str)'
     remind=[remind sampind(regind)'];
   end
   tempdata(remind,:)=[];
-  % scale by dss peak and convert ratios
+  % scale by dss peak and apply convert ratios
+  dssindvec=[];
   for sampi=1:nsample
     sampind=find(tempdata{:,'simulation'}==sampi);
     loctab=tempdata(sampind,:);
-    dssrangind=loctab{:,1}>dssragne(1)&loctab{:,1}<dssragne(2);
-    a_dss=max(loctab{dssrangind,3});
+    dssrangind=find(loctab{:,1}>dssrange(1)&loctab{:,1}<dssrange(2));
+    [a_dss, dssind]=max(loctab{dssrangind,3});
     loctab{:,3}=loctab{:,3}/a_dss;
     if ismember(sampi,mixseq)
-      loctab{~dssrangind,3}=loctab{~dssrangind,3}*est_ratio(sampi);
-      loctab{dssrangind,3}=loctab{dssrangind,3}*dss_ratio(sampi);
+      loctab{:,3}=loctab{:,3}*est_ratio(sampi);
     end
+    dssindvec=[dssindvec sampind(dssrangind(dssind))];
     tempdata(sampind,:)=loctab;
   end
   %
+  % tempdata(dssindvec,:)=[];
   quan_str.(type)=tempdata;
 end
 % calculate ground truth from the reference spectra
+% match ppms
+reg_ref=[1.4705 1.4826 3.0521 3.0644 3.2223 3.236 3.2379 3.2511 3.3768 3.3876 3.3925 3.4027 3.4081 3.4189 3.4423 3.4462 3.4521 3.4555 3.4663 3.4819 3.4971 3.5147 3.521 3.5313 3.5377 3.5963 3.6037 3.8736 3.877 3.8941 3.898 3.6305 4.6437 5.2216 5.228 6.8948 6.9095 7.3491 7.3447 7.8586 7.863];
+reg_spike=[1.4743 1.486 3.0536 3.0663 3.2296 3.2433 3.2453 3.2585 3.3856 3.3964 3.4013 3.412 3.4174 3.4281 3.4477 3.4516 3.4575 3.4609 3.4761 3.4912 3.5064 3.5245 3.5308 3.5411 3.547 3.6066 3.6139 3.8824 3.8858 3.9029 3.9068 4.6398 3.653 5.2309 5.2373 6.933 6.9476 7.3784 7.374 7.8737 7.8781];
+%
 summ_str=struct();
 groundtruth_str=struct();
 ground_peak_n=200;
@@ -183,7 +190,22 @@ for type=fieldnames(quan_str)'
   for simui=mixseq
     subtab_est=est_tab_temp(est_tab_temp{:,'simulation'}==simui,:);
     subtab_true=groundtruth_tab(groundtruth_tab{:,'simulation'}==simui,:);
-    distmat=abs(pdist2(subtab_est{:,'PPM'},subtab_true{:,'PPM'}));
+    % two step matching
+    % peaks that moves
+    ind_true_match=[];
+    ind_est_match=[];
+    for regi=1:size(reg_ref,2)
+      [~,truesetind]=min(abs(subtab_true{:,'PPM'}-reg_ref(regi)));
+      [~,estsetind]=min(abs(subtab_est{:,'PPM'}-reg_spike(regi)));
+      ind_est_match=[ind_est_match; estsetind];
+      ind_true_match=[ind_true_match; truesetind];
+    end
+    % peaks that doesn't move
+    subtab_est_nomove=subtab_est;
+    subtab_true_nomove=subtab_true;
+    subtab_est_nomove(ind_est_match,:)=[];
+    subtab_true_nomove(ind_true_match,:)=[];
+    distmat=abs(pdist2(subtab_est_nomove{:,'PPM'},subtab_true_nomove{:,'PPM'}));
     %%%selecting out ppm points that are pairwise closest to each other
     [ppm_match_val1,ppm_match_ind1]=min(distmat,[],2);
     [ppm_match_val2,ppm_match_ind2]=min(distmat,[],1);
@@ -201,15 +223,14 @@ for type=fieldnames(quan_str)'
     thres_ind=find(ppm_match_val<deltapm_threshold);
     ind_est=ind_est(thres_ind);
     ind_true=ind_true(thres_ind);
-    subtab_est_match=subtab_est(ind_est,{'PPM','A','lambda','phase'});
+    subtab_est_match=[subtab_est(ind_est_match,{'PPM','A','lambda','phase'}); subtab_est_nomove(ind_est,{'PPM','A','lambda','phase'})];
     subtab_est_match.Properties.VariableNames={'PPM_est','A_est','lambda_est','phase_est'};
-    subtab_true_match=subtab_true(ind_true,{'PPM','A','lambda','phase','simulation'});
+    subtab_true_match=[subtab_true(ind_true_match,{'PPM','A','lambda','phase','simulation'}); subtab_true_nomove(ind_true,{'PPM','A','lambda','phase','simulation'})];
     subtab_true_match.Properties.VariableNames={'PPM_true','A_true','lambda_true','phase_true','simulation'};
     summtab=[summtab; [subtab_est_match subtab_true_match]];
     rec_ratio=[rec_ratio size(subtab_est_match,1)/size(subtab_true,1)];
   end
   tempstr=struct();
-  [~,sortind]=sort(summtab{:,'A_true'},'descend');
   tempstr.summtab=summtab;
   tempstr.rec_ratio=rec_ratio;
   summ_str.(type)=tempstr;
@@ -267,6 +288,9 @@ for type=fieldnames(summ_str)'
   saveas(h,['scatter_simulation.' type 'log10.fig']);
   close(h);
 end
+
+% example regions
+
 
 % correlation network
 %% match peaks from different samples
