@@ -117,7 +117,7 @@ gt_ratio=spike_ratio.*spike_ratio./dss_ratio;
 est_ratio=spike_ratio;
 % group ind
 mixseq=[2:5];%mixutres
-mixseq=[4:5];%remove the low concentration sample
+% mixseq=[4:5];%remove the low concentration sample
 purespec_str.ref=[6];%reference sample
 remreg=[4.66 4.95];% the water region to remove
 for type=fieldnames(quan_str)'
@@ -290,7 +290,100 @@ for type=fieldnames(summ_str)'
 end
 
 % example regions
-
+% exampreg=[0.965 1.047; 1.457 1.495; 1.86 1.94; 3.21 3.26; 2.21 2.31; 3.36 3.43; 3.43 3.54; 3.58 3.63; 3.86 3.91; 4.61 4.67];
+% hshifts=[200 200 50 200 50 200 50 200 200 200]
+preheadpath='/Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/spec_deconv_time_domain/result/publicaiton_spec_decomp/result_reproduce/urine_spikin/archive/data_exap/1/test_trans.fid';
+exampreg=[1.86 1.94; 2.21 2.31];
+hshifts=[10 10];
+tab_gt=groundtruth_str.deconv;
+tab_gt=tab_gt(tab_gt{:,'simulation'}==5,:);
+tab_urine=quan_str.deconv;
+tab_urine=tab_urine(tab_urine{:,'simulation'}==1,:);
+refspec=ft_mat(purespec_str.ref,:);
+urinespec=ft_mat(1,:);
+matchtab=summ_str.deconv.summtab;
+for regi=1:size(exampreg,1)
+  stackmat=[];
+  rgbarray=[];
+  regppm=exampreg(regi,:);
+  regbound=sort(matchPPMs(regppm,ppm));
+  regseq=regbound(1):regbound(2);
+  ppmsele=ppm(regseq);
+  spec_gt=refspec(regseq);
+  % ground truth compnents
+  tab_reg=tab_gt(tab_gt{:,'PPM'}>regppm(1)&tab_gt{:,'PPM'}<regppm(2),:);
+  [~,sortind]=sort(tab_reg{:,'PPM'});
+  tab_reg=tab_reg(sortind,:);
+  tempmat=[];
+  for rowi=1:size(tab_reg,1)
+    tab_reg{rowi,1}=(tab_reg{rowi,1}-para_add_list.conv_f(1))*para_add_list.conv_f(2);
+    sumsig=sin_mixture_simu(tab_reg{rowi,[1 2 3 4]},timevec_sub_front',0.0,'complex');
+    scalfactor=0.5;
+    sumsig(1)=sumsig(1)*scalfactor;
+    sumsig=[zeros([1,shifttimeadd]) sumsig];
+    spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig)',imag(sumsig)'),preheadpath,'temp');
+    tempmat=[tempmat; spec_new_sum{regseq,2}'];
+  end
+  % spec_gt=spec_gt/max(spec_gt)*max(sum(tempmat,1));
+  tempmat=tempmat/max(tempmat(:))*max(spec_gt);
+  stackmat=[stackmat; spec_gt];
+  stackmat=[stackmat; tempmat];
+  rgbarray=[rgbarray; repmat([1 0 0],[size(tempmat,1)+1,1])];
+  % urine spectra
+  spec_ur=urinespec(regseq);
+  % urine spectra compnents
+  tab_reg=tab_urine(tab_urine{:,'PPM'}>regppm(1)&tab_urine{:,'PPM'}<regppm(2),:);
+  [~,sortind]=sort(tab_reg{:,'PPM'});
+  tab_reg=tab_reg(sortind,:);
+  tempmat=[];
+  for rowi=1:size(tab_reg,1)
+    tab_reg{rowi,1}=(tab_reg{rowi,1}-para_add_list.conv_f(1))*para_add_list.conv_f(2);
+    sumsig=sin_mixture_simu(tab_reg{rowi,[1 2 3 4]},timevec_sub_front',0.0,'complex');
+    scalfactor=0.5;
+    sumsig(1)=sumsig(1)*scalfactor;
+    sumsig=[zeros([1,shifttimeadd]) sumsig];
+    spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig)',imag(sumsig)'),preheadpath,'temp');
+    tempmat=[tempmat; spec_new_sum{regseq,2}'];
+  end
+  % spec_ur=spec_ur/max(spec_ur)*max(sum(tempmat,1));
+  tempmat=tempmat/max(tempmat(:))*max(spec_ur);
+  stackmat=[stackmat; spec_ur];
+  stackmat=[stackmat; tempmat];
+  rgbarray=[rgbarray; repmat([0 1 0],[size(tempmat,1)+1,1])];
+  for sampi=[5 2]
+    spec_spike=ft_mat(sampi,regseq);
+    tabloc=matchtab(matchtab{:,'simulation'}==sampi,:);
+    % ground truth compnents
+    tab_reg=tabloc(tabloc{:,'PPM_est'}>regppm(1)&tabloc{:,'PPM_est'}<regppm(2),:);
+    [~,sortind]=sort(tab_reg{:,'PPM_est'});
+    tab_reg=tab_reg(sortind,:);
+    tempmat=[];
+    for rowi=1:size(tab_reg,1)
+      tab_reg{rowi,1}=(tab_reg{rowi,1}-para_add_list.conv_f(1))*para_add_list.conv_f(2);
+      sumsig=sin_mixture_simu(tab_reg{rowi,[1 3 2 4]},timevec_sub_front',0.0,'complex');
+      scalfactor=0.5;
+      sumsig(1)=sumsig(1)*scalfactor;
+      sumsig=[zeros([1,shifttimeadd]) sumsig];
+      spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig)',imag(sumsig)'),preheadpath,'temp');
+      tempmat=[tempmat; spec_new_sum{regseq,2}'];
+    end
+    % spec_spike=spec_spike/max(spec_spike)*max(sum(tempmat,1));
+    tempmat=tempmat/max(tempmat(:))*max(spec_spike);
+    stackmat=[stackmat; spec_spike];
+    stackmat=[stackmat; tempmat];
+    rgbarray=[rgbarray; repmat([0.2 0.2 0.2],[size(tempmat,1)+1,1])];
+  end
+  stackmat=flip(stackmat,1);
+  colorset=struct();
+  colorset.rgb=flip(rgbarray,1);
+  colorset.categories=table(flip([{'ref'},{'urine'},{'spike'}]'));
+  colorset.colorList=flip([1 0 0; 0 1 0; 0.2 0.2 0.2],1);
+  %
+  stackSpectra(stackmat,ppmsele,0.0,hshifts(regi),['temp'],'colors',colorset);
+  fig=gcf;
+  saveas(fig,['stack' num2str(regi) '.fig']);
+  close all;
+end
 
 % correlation network
 %% match peaks from different samples
@@ -364,3 +457,32 @@ for elei=1:length(rowind)
 end
 cornet_table_corr=table(node1',node2',correlation','VariableNames',{'source' 'target' 'association'});
 writetable(cornet_table_corr,'deconv_corr_thres0_9.txt','Delimiter','\t');
+
+% peak plot
+preheadpath='/Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/spec_deconv_time_domain/result/publicaiton_spec_decomp/result_reproduce/urine_spikin/archive/data_exap/1/test_trans.fid';
+est_tab_deconv=quan_str.deconv;
+for sampi=[mixseq purespec_str.ref]
+  loctab=est_tab_deconv{est_tab_deconv{:,'simulation'}==sampi,[1:4]};
+  loctab_f=loctab;
+  loctab_f(:,1)=(loctab_f(:,1)-para_add_list.conv_f(1))*para_add_list.conv_f(2)
+  sumsig=sin_mixture_simu(loctab_f,timevec_sub_front,nan,'complex');
+  scalfactor=0.5;
+  sumsig(1)=sumsig(1)*scalfactor;
+  sumsig=[zeros([shifttimeadd,1]); sumsig];
+  spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig),imag(sumsig)),preheadpath,'temp');
+  new_spec_vec=spec_new_sum{:,2};
+  %
+  ft_raw=ft_mat(sampi,:)';
+  dssrang=sort(matchPPMs(ppmrange_dss,ppm));
+  dssind=dssrang(1):dssrang(2);
+  ft_raw=ft_raw/max(ft_raw(dssind))*max(new_spec_vec(dssind));
+  %
+  fig=figure();
+  plotr(ppm,ft_raw,'LineWidth',2);
+  hold on;
+  plotr(ppm,new_spec_vec,'LineWidth',2);
+  legend('raw','estimation');
+  stem(loctab(:,1),loctab(:,3)/max(loctab(:,3))*max(ft_raw));
+  saveas(fig,['spec_stem' num2str(sampi) '.fig']);
+  close all;
+end
