@@ -14,7 +14,7 @@ addpath(genpath(localPaths.public_toolbox));
 addpath(genpath(localPaths.nmrdecomp_path));
 pause(1),clc
 % the path should be changed accordingly in the users' computer
-paredir='/lustre2/scratch/yw44924/urine_spikin2/'
+paredir='/lustre2/scratch/yw44924/urine_spikin3/'
 datadir=[paredir 'data/'];
 rundir=[paredir];
 pipescriptdir=[localPaths.nmrdecomp_path 'scripts/spike_urine/pipe_script/'];
@@ -55,6 +55,7 @@ datafds=num2str(c);
 cd([rundir '/res/']);
 %
 meta_tab=addvars(meta_tab,datafds,'After','File_number');
+phasetab=readtable(['../phase_manual.txt']);
 % formulate the nmrpipe folder
 nmrpipe=['nmrpipe_dir/'];
 for rowi=1:nsample
@@ -64,6 +65,27 @@ for rowi=1:nsample
   mkdir([nmrpipe sampdir '/script']);
   copyfile([rawdatadir oridir '/*'],[nmrpipe sampdir '/']);
   copyfile([nmrpipe 'script'],[nmrpipe sampdir '/script']);
+  % read lines
+  p0=phasetab{rowi,2};
+  lines={};
+  procshell=[nmrpipe sampdir '/script/proc.com'];
+  f_id=fopen(procshell);
+  while true
+    tline=fgetl(f_id);
+    if ~ischar(tline); break; end   %end of file
+    % disp(tline);
+    lines=[lines tline];
+  end
+  fclose(f_id);
+  rowind=find(contains(lines,'-xELB'));
+  for rowele=rowind
+    lines{rowele}=['             ' '-xP0 ' num2str(p0) ' ' strtrim(lines{rowele})];
+  end
+  % output lines
+  % cat(lines);
+  f_id=fopen(procshell,'w');
+  fprintf(f_id,'%s\n',lines{:});
+  fclose(f_id);
 end
 % nmrpipe based preprocess
 nmrpipe_process('./nmrpipe_dir/',nsample,'prior',shelladd);
