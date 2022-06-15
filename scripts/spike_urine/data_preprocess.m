@@ -8,8 +8,8 @@ shelladd='source /home/yw44924/.cshrc';
 % rmpath(genpath('/Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/matalb.lib/plstoolbox/PLS_Toolbox_881/'));
 % Metabolic toolbox toolbox found @  https://github.com/artedison/Edison_Lab_Shared_Metabolomics_UGA
 localPaths.public_toolbox='/home/yw44924/metabolic_toolbox_open/Edison_Lab_Shared_Metabolomics_UGA/';
-% NMR decompositon program found @ https://github.com/mikeaalv/NMR_time_domain_decomposition
-localPaths.nmrdecomp_path='/home/yw44924/nmr_spec_decomp/NMR_time_domain_decomposition/';
+% NMR decompositon program found @ https://github.com/edisonomics/SAND
+localPaths.nmrdecomp_path='/home/yw44924/nmr_spec_decomp/SAND/';
 addpath(genpath(localPaths.public_toolbox));
 addpath(genpath(localPaths.nmrdecomp_path));
 pause(1),clc

@@ -3,8 +3,8 @@ clear all;
 %% Set your toolbox paths; functions imported from these directories:
 % Metabolic toolbox toolbox found @  https://github.com/artedison/Edison_Lab_Shared_Metabolomics_UGA
 localPaths.public_toolbox='/Users/yuewu/Documents/GitHub/Edison_Lab_Shared_Metabolomics_UGA/';
-% NMR decompositon program found @ https://github.com/mikeaalv/NMR_time_domain_decomposition
-localPaths.nmrdecomp_path='/Users/yuewu/Documents/GitHub/NMR_time_domain_decomposition/';
+% NMR decompositon program found @ https://github.com/edisonomics/SAND
+localPaths.nmrdecomp_path='/Users/yuewu/Documents/GitHub/SAND/';
 addpath(genpath(localPaths.public_toolbox));
 addpath(genpath(localPaths.nmrdecomp_path));
 pause(1),clc
