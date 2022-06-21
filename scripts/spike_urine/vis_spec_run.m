@@ -3,16 +3,16 @@ clear all;
 %% Set your toolbox paths; functions imported from these directories:
 % Metabolic toolbox toolbox found @  https://github.com/artedison/Edison_Lab_Shared_Metabolomics_UGA
 localPaths.public_toolbox='/Users/yuewu/Documents/GitHub/Edison_Lab_Shared_Metabolomics_UGA/';
-% NMR decompositon program found @ https://github.com/mikeaalv/NMR_time_domain_decomposition
-localPaths.nmrdecomp_path='/Users/yuewu/Documents/GitHub/NMR_time_domain_decomposition/';
+% NMR decompositon program found @ https://github.com/edisonomics/SAND
+localPaths.nmrdecomp_path='/Users/yuewu/Documents/GitHub/SAND/';
 addpath(genpath(localPaths.public_toolbox));
 addpath(genpath(localPaths.nmrdecomp_path));
 pause(1),clc
 % the path should be changed accordingly in hte users' computer
 paredir='/Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/spec_deconv_time_domain/result/publicaiton_spec_decomp/'
 projdir=[paredir 'result_reproduce/urine_spikin/'];
-datadir=[paredir 'data/'];
-libdir=[datadir 'test_trans.fid'];% a template fid file containing useful header information. https://www.dropbox.com/s/1i0dixw4vasctwu/test_trans.fid?dl=0
+datadir=[projdir 'data/'];
+libdir=[projdir 'archive/data_exap/1/test_trans.fid'];% a template fid file containing useful header information. https://www.dropbox.com/s/1i0dixw4vasctwu/test_trans.fid?dl=0
 preresdirpath=[projdir 'res/res/'];
 cd([projdir]);
 load([projdir 'res/saved_preprocessing.mat']);
@@ -54,7 +54,7 @@ fig=figure();
 plotr(ppm,ft_mat);
 savefig(fig,['ft_all_sample_stack.fig']);
 close all;
-
+%
 stackSpectra(ft_mat,ppm,0,50,'all stack')
 fig=gcf;
 saveas(fig,['stack_all_sample.fig']);
@@ -78,7 +78,6 @@ for sampi=sampleseq
   ftstr{sampi}=ft_ori_tab;
 end
 est_tab.Properties.VariableNames={'PPM','lambda','A','phase','simulation'};
-
 %intensity and integral based estimation
 est_other_tab=[];
 for sampi=sampleseq
@@ -107,382 +106,256 @@ quan_str.deconv=est_tab;
 quan_str.intensity=est_other_tab(:,{'PPM','lambda','intensity','phase','simulation'});
 quan_str.integral=est_other_tab(:,{'PPM','lambda','integral','phase','simulation'});
 %
-selerange=[-0.5 9];% considered ppm range
+save('data_temp.mat')
+% match peaks from different samples
+% example visualization regions
+exampreg=[0.965 1.047; 1.457 1.495; 1.86 1.94; 3.43 3.54; 3.58 3.63; 4.61 4.67; 5.2 5.3];
+% peak match for spike in peaks [ref bin, mixture bin]
+ppmref_match=[0.97 0.98 0.97 0.98; 0.983 0.99 0.983 0.99; 1.02 1.03 1.02 1.03; 1.035 1.042 1.035 1.042; 1.468 1.473 1.472 1.477; 1.48 1.485 1.484 1.489; 1.733 1.746 1.733 1.746; 1.746 1.761 1.746 1.761; 1.761 1.773 1.761 1.773; 1.895 1.902 1.897 1.904; 3.373 3.38 3.383 3.388; 3.389 3.396 3.399 3.405; 3.593 3.599 3.605 3.609; 3.601 3.607 3.612 3.616; 4.624 4.637 4.633 4.645; 4.637 4.649 4.648 4.658; 5.218 5.224 5.228 5.234; 5.224 5.231 5.234 5.241; 6.89 6.902 6.927 6.939; 6.904 6.913 6.943 6.953; 7.34 7.351 7.371 7.382; 7.853 7.868 7.87 7.883; 3.478 3.484 3.487 3.494];
+% ppmref_hard=[3.218 3.226 3.228 3.232; 3.237 3.24 3.244 3.249; 3.248 3.254 3.257 3.26; 3.406 3.411 3.414 3.419];
+% ppmref_match=[ppmref_match; ppmref_hard];
+% peak match for urine peaks
+ppmurine_match=[1.466 1.471 1.466 1.471; 1.479 1.483 1.479 1.483; 1.913 1.917 1.912 1.915];%; 4.043 4.057 4.043 4.057
+est_tab_renorm=est_tab;
+vol_add=[0,20,40,60,80,20];%the last one is reference
+sampnames={'0 (urine)','20','40','60','80','ref'};
+nsample=6;
+sampi_interest=[1:nsample];
 dssrange=[-0.5 0.5];
-% ratios
-spike_ratio=[0,1,2,3,4];%ratio for spike-in compounds
-dss_ratio=(1/9*0.06+0.4*spike_ratio)/(1/9*0.06+0.4);%ratio for dss
-% convert factors
-gt_ratio=spike_ratio.*spike_ratio./dss_ratio;
-est_ratio=spike_ratio;
-% group ind
-mixseq=[2:5];%mixutres
-% mixseq=[4:5];%remove the low concentration sample
-purespec_str.ref=[6];%reference sample
-remreg=[4.66 4.95];% the water region to remove
-for type=fieldnames(quan_str)'
-  type=type{1};
-  tempdata=quan_str.(type);
-  rowind_ppm=find(tempdata{:,'PPM'}>selerange(1)&tempdata{:,'PPM'}<selerange(2));
-  tempdata=tempdata(rowind_ppm,:);
-  %
-  remind=[];
-  for sampi=1:nsample
-    sampind=find(tempdata{:,'simulation'}==sampi);
-    samp_tab=tempdata(sampind,:);
-    regind=find(samp_tab{:,'PPM'}>remreg(1)&samp_tab{:,'PPM'}<remreg(2));
-    remind=[remind sampind(regind)'];
-  end
-  tempdata(remind,:)=[];
-  % scale by dss peak and apply convert ratios
-  dssindvec=[];
-  for sampi=1:nsample
-    sampind=find(tempdata{:,'simulation'}==sampi);
-    loctab=tempdata(sampind,:);
+refspec=ft_mat(nsample,:);
+normpeak=[3.034 3.043];
+% use one urine peak to normalize samples with urines and then use dss peak to normalize the reference spectra
+for sampi=sampi_interest
+  sampind=find(est_tab_renorm{:,'simulation'}==sampi);
+  loctab=est_tab_renorm(sampind,:);
+  if sampi~=6
+    refrangind=find(loctab{:,1}>normpeak(1)&loctab{:,1}<normpeak(2));
+    a_ref=sum(loctab{refrangind,3});
+    loctab{:,3}=loctab{:,3}/a_ref;
+  else
     dssrangind=find(loctab{:,1}>dssrange(1)&loctab{:,1}<dssrange(2));
-    [a_dss, dssind]=max(loctab{dssrangind,3});
-    loctab{:,3}=loctab{:,3}/a_dss;
-    if ismember(sampi,mixseq)
-      loctab{:,3}=loctab{:,3}*est_ratio(sampi);
-    end
-    dssindvec=[dssindvec sampind(dssrangind(dssind))];
-    tempdata(sampind,:)=loctab;
+    dss_here=max(loctab{dssrangind,3});
+    loctab{:,3}=loctab{:,3}/dss_here*dss_ref;
   end
-  %
-  % tempdata(dssindvec,:)=[];
-  quan_str.(type)=tempdata;
+  if sampi==2
+    dssrangind=find(loctab{:,1}>dssrange(1)&loctab{:,1}<dssrange(2));
+    dss_ref=max(loctab{dssrangind,3});
+  end
+  est_tab_renorm(sampind,:)=loctab;
 end
-% calculate ground truth from the reference spectra
-% match ppms
-reg_ref=[1.4705 1.4826 3.0521 3.0644 3.2223 3.236 3.2379 3.2511 3.3768 3.3876 3.3925 3.4027 3.4081 3.4189 3.4423 3.4462 3.4521 3.4555 3.4663 3.4819 3.4971 3.5147 3.521 3.5313 3.5377 3.5963 3.6037 3.8736 3.877 3.8941 3.898 3.6305 4.6437 5.2216 5.228 6.8948 6.9095 7.3491 7.3447 7.8586 7.863];
-reg_spike=[1.4743 1.486 3.0536 3.0663 3.2296 3.2433 3.2453 3.2585 3.3856 3.3964 3.4013 3.412 3.4174 3.4281 3.4477 3.4516 3.4575 3.4609 3.4761 3.4912 3.5064 3.5245 3.5308 3.5411 3.547 3.6066 3.6139 3.8824 3.8858 3.9029 3.9068 4.6398 3.653 5.2309 5.2373 6.933 6.9476 7.3784 7.374 7.8737 7.8781];
-%
-summ_str=struct();
-groundtruth_str=struct();
-ground_peak_n=200;
-for type=fieldnames(quan_str)'
-  type=type{1};
-  % ground truth peak list
-  groundtruth_peak=[];
-  locseq=purespec_str.ref;
-  quantab=quan_str.(type);
-  locpeakind=quantab{:,'simulation'}==locseq;
-  groundtruth_peak=[groundtruth_peak; [quantab(locpeakind,1:4) table(repmat({'unknown'},[length(find(locpeakind)),1]))]];
-  groundtruth_peak.Properties.VariableNames={'PPM','lambda','A_rela','phase','compounds'};
-  [~,indsort]=sort(groundtruth_peak{:,3},'descend');
-  groundtruth_peak=groundtruth_peak(indsort(1:ground_peak_n),:);
-  % calculate ground truth A of peaks in each sample
-  groundtruth_tab=[];
-  for sampi=mixseq
-    locpeak_tab=groundtruth_peak;
-    locpeak_tab{:,'A_rela'}=locpeak_tab{:,'A_rela'}*gt_ratio(sampi);
-    locsavetabes=locpeak_tab(:,{'PPM','lambda','A_rela','phase','compounds'});
-    locsavetabes=addvars(locsavetabes,repmat(sampi,[size(locsavetabes,1),1]),'After','phase');
-    groundtruth_tab=[groundtruth_tab; locsavetabes];
-  end
-  groundtruth_tab.Properties.VariableNames={'PPM','lambda','A','phase','simulation','compounds'};
-  groundtruth_str.(type)=groundtruth_tab;
-  % match estimation with ground truth
-  summtab=[];
-  rec_ratio=[];
-  est_tab_temp=quan_str.(type);
-  est_tab_temp.Properties.VariableNames={'PPM','lambda','A','phase','simulation'};
-  for simui=mixseq
-    subtab_est=est_tab_temp(est_tab_temp{:,'simulation'}==simui,:);
-    subtab_true=groundtruth_tab(groundtruth_tab{:,'simulation'}==simui,:);
-    % two step matching
-    % peaks that moves
-    ind_true_match=[];
-    ind_est_match=[];
-    for regi=1:size(reg_ref,2)
-      [~,truesetind]=min(abs(subtab_true{:,'PPM'}-reg_ref(regi)));
-      [~,estsetind]=min(abs(subtab_est{:,'PPM'}-reg_spike(regi)));
-      ind_est_match=[ind_est_match; estsetind];
-      ind_true_match=[ind_true_match; truesetind];
+% plot spike spectra quantification
+quan_methods={'max','sum'};
+ppmpairtab=[ppmref_match; ppmurine_match];
+pairsize=[size(ppmref_match,1) size(ppmurine_match,1)];
+labels=[repmat([1],[pairsize(1),1]); repmat([0],[pairsize(2),1])];
+npairs=size(ppmpairtab,1);
+specvec=[0 10 10 10 10 50 50];% space settings for plot
+quan_record=struct();
+for quanmethod=quan_methods
+  quanmethod=quanmethod{1};
+  quan_coll=[];%peak * samples
+  % fetch quantifications
+  for ppair_i=1:npairs
+    locppm=ppmpairtab(ppair_i,:);
+    if labels(ppair_i)==1
+      searchppm_reg=[repmat(locppm(3:4),[5,1]); locppm(1:2)];
+    else
+      searchppm_reg=[locppm(1:2); repmat(locppm(3:4),[4,1]); nan nan];
     end
-    % peaks that doesn't move
-    subtab_est_nomove=subtab_est;
-    subtab_true_nomove=subtab_true;
-    subtab_est_nomove(ind_est_match,:)=[];
-    subtab_true_nomove(ind_true_match,:)=[];
-    distmat=abs(pdist2(subtab_est_nomove{:,'PPM'},subtab_true_nomove{:,'PPM'}));
-    %%%selecting out ppm points that are pairwise closest to each other
-    [ppm_match_val1,ppm_match_ind1]=min(distmat,[],2);
-    [ppm_match_val2,ppm_match_ind2]=min(distmat,[],1);
-    ind_true=[];
-    ind_est=[];
-    ppm_match_val=[];
-    for ppm_min_i=1:length(ppm_match_ind1)
-      if ppm_match_ind2(ppm_match_ind1(ppm_min_i))==ppm_min_i%check for pairwise match
-        ppm_match_val=[ppm_match_val ppm_match_val1(ppm_min_i)];
-        ind_true=[ind_true ppm_match_ind1(ppm_min_i)];
-        ind_est=[ind_est ppm_min_i];
+    tempvec=[];
+    for sampi=1:size(searchppm_reg,1)
+      locreg=searchppm_reg(sampi,:);
+      if isnan(locreg(1))
+        tempvec=[tempvec 0];
+      else
+        mask_samp=est_tab_renorm{:,'simulation'}==sampi;
+        mask_ppm=est_tab_renorm{:,'PPM'}>locreg(1) & est_tab_renorm{:,'PPM'}<locreg(2);
+        Avec=est_tab_renorm{mask_samp&mask_ppm,'A'};
+        if length(Avec)==0
+          tempvec=[tempvec 0];
+        elseif strcmp(quanmethod,'max')
+          tempvec=[tempvec max(Avec)];
+        else
+          tempvec=[tempvec sum(Avec)];
+        end
       end
     end
-    % filter by ppm distances
-    thres_ind=find(ppm_match_val<deltapm_threshold);
-    ind_est=ind_est(thres_ind);
-    ind_true=ind_true(thres_ind);
-    subtab_est_match=[subtab_est(ind_est_match,{'PPM','A','lambda','phase'}); subtab_est_nomove(ind_est,{'PPM','A','lambda','phase'})];
-    subtab_est_match.Properties.VariableNames={'PPM_est','A_est','lambda_est','phase_est'};
-    subtab_true_match=[subtab_true(ind_true_match,{'PPM','A','lambda','phase','simulation'}); subtab_true_nomove(ind_true,{'PPM','A','lambda','phase','simulation'})];
-    subtab_true_match.Properties.VariableNames={'PPM_true','A_true','lambda_true','phase_true','simulation'};
-    summtab=[summtab; [subtab_est_match subtab_true_match]];
-    rec_ratio=[rec_ratio size(subtab_est_match,1)/size(subtab_true,1)];
-  end
-  tempstr=struct();
-  tempstr.summtab=summtab;
-  tempstr.rec_ratio=rec_ratio;
-  summ_str.(type)=tempstr;
-end
-% calculate evaluations
-evalu_str=struct();
-for type=fieldnames(quan_str)'
-  type=type{1};
-  summtab=summ_str.(type).summtab;
-  rel_mse_vec=[];
-  mse_vec=[];
-  corxy_vec=[];
-  k_vec=[];
-  for simui=mixseq
-    loctab=summtab(summtab{:,'simulation'}==simui,:);
-    xvec=loctab{:,'A_true'};
-    yvec=loctab{:,'A_est'};
-    ndata=length(xvec);
-    rel_mse_vec=[rel_mse_vec sum(((xvec-yvec)./mean([xvec yvec],2)).^2)/ndata];
-    mse_vec=[mse_vec sum((xvec-yvec).^2)/ndata];
-    corxy_vec=[corxy_vec corr(xvec,yvec)];
-    dlm=fitlm(xvec,yvec,'Intercept',false);
-    k_vec=[k_vec dlm.Coefficients.Estimate];
-  end
-  evalu=struct();
-  for eval_ele={'rel_mse' 'mse' 'corxy' 'k'}
-    eval_ele=eval_ele{1};
-    locvec=eval([eval_ele '_vec']);
-    evalu.(eval_ele)=mean(locvec);
-    evalu.([eval_ele '_ste'])=std(locvec)/sqrt(length(locvec));
-  end
-  evalu_str.(type)=evalu;
-end
-% make the table
-evalu_tab=cell2table(cell(0,5),'VariableNames',{'rel_mse','mse','corxy','k', 'quan_method'});
-for methele=fieldnames(evalu_str)'
-  methele=methele{1};
-  loctab=struct2table(evalu_str.(methele));
-  loctab=[loctab(:,{'rel_mse','mse','corxy','k'}) table({methele},'VariableNames',{'quan_method'})];
-  evalu_tab=[evalu_tab; loctab];
-end
-save('evaluation.mat','evalu_str','evalu_tab');
-writetable(evalu_tab,'stat_tab.txt');
-
-% scattter plot
-for type=fieldnames(summ_str)'
-  type=type{1};
-  summtab=summ_str.(type).summtab;
-  evalu=evalu_str.(type);
-  h=figure();
-    gscatter(log10(summtab{:,'A_true'}),log10(summtab{:,'A_est'}),summtab{:,'simulation'},[],[],[20]);
-    xlabel('ground truth');
+    quan_coll=[quan_coll; tempvec];
+    % scatter for each pair
+    locxvec=1:nsample;
+    locyvec=tempvec;
+    h=figure();
+    spikeind=1:(nsample-1);
+    dlm=fitlm(locxvec(spikeind),locyvec(spikeind));
+    lineestpara=dlm.Coefficients.Estimate';
+    gscatter(locxvec,locyvec,[],[],[],[20]);
+    refline(lineestpara(2),lineestpara(1));
+    if ppair_i>pairsize(1)
+      titadd='urine';
+    else
+      titadd='spikein';
+    end
+    titlefig=[titadd ' ' num2str(locppm(1)) ' ' num2str(locppm(2))];
+    xlabel('spike volumn');
     ylabel('estimation');
-    title([type ' correlation ' num2str(evalu.corxy), ' mse ' num2str(evalu.mse) ' k ' num2str(evalu.k)]);
-  saveas(h,['scatter_simulation.' type 'log10.fig']);
-  close(h);
-end
-
-% example regions
-% exampreg=[0.965 1.047; 1.457 1.495; 1.86 1.94; 3.21 3.26; 2.21 2.31; 3.36 3.43; 3.43 3.54; 3.58 3.63; 3.86 3.91; 4.61 4.67];
-% hshifts=[200 200 50 200 50 200 50 200 200 200]
-preheadpath='/Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/spec_deconv_time_domain/result/publicaiton_spec_decomp/result_reproduce/urine_spikin/archive/data_exap/1/test_trans.fid';
-exampreg=[1.86 1.94; 2.21 2.31];
-hshifts=[10 10];
-tab_gt=groundtruth_str.deconv;
-tab_gt=tab_gt(tab_gt{:,'simulation'}==5,:);
-tab_urine=quan_str.deconv;
-tab_urine=tab_urine(tab_urine{:,'simulation'}==1,:);
-refspec=ft_mat(purespec_str.ref,:);
-urinespec=ft_mat(1,:);
-matchtab=summ_str.deconv.summtab;
-for regi=1:size(exampreg,1)
-  stackmat=[];
-  rgbarray=[];
-  regppm=exampreg(regi,:);
-  regbound=sort(matchPPMs(regppm,ppm));
-  regseq=regbound(1):regbound(2);
-  ppmsele=ppm(regseq);
-  spec_gt=refspec(regseq);
-  % ground truth compnents
-  tab_reg=tab_gt(tab_gt{:,'PPM'}>regppm(1)&tab_gt{:,'PPM'}<regppm(2),:);
-  [~,sortind]=sort(tab_reg{:,'PPM'});
-  tab_reg=tab_reg(sortind,:);
-  tempmat=[];
-  for rowi=1:size(tab_reg,1)
-    tab_reg{rowi,1}=(tab_reg{rowi,1}-para_add_list.conv_f(1))*para_add_list.conv_f(2);
-    sumsig=sin_mixture_simu(tab_reg{rowi,[1 2 3 4]},timevec_sub_front',0.0,'complex');
-    scalfactor=0.5;
-    sumsig(1)=sumsig(1)*scalfactor;
-    sumsig=[zeros([1,shifttimeadd]) sumsig];
-    spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig)',imag(sumsig)'),preheadpath,'temp');
-    tempmat=[tempmat; spec_new_sum{regseq,2}'];
+    title([titlefig ' quantificaiton estimation']);
+    set(gca,'XTick',1:6,'XTickLabel',sampnames);
+    saveas(h,['scatter_eval.' quanmethod '_' num2str(ppair_i)  '_'  titlefig '.fig']);
+    close(h);
   end
-  % spec_gt=spec_gt/max(spec_gt)*max(sum(tempmat,1));
-  tempmat=tempmat/max(tempmat(:))*max(spec_gt);
-  stackmat=[stackmat; spec_gt];
-  stackmat=[stackmat; tempmat];
-  rgbarray=[rgbarray; repmat([1 0 0],[size(tempmat,1)+1,1])];
-  % urine spectra
-  spec_ur=urinespec(regseq);
-  % urine spectra compnents
-  tab_reg=tab_urine(tab_urine{:,'PPM'}>regppm(1)&tab_urine{:,'PPM'}<regppm(2),:);
-  [~,sortind]=sort(tab_reg{:,'PPM'});
-  tab_reg=tab_reg(sortind,:);
-  tempmat=[];
-  for rowi=1:size(tab_reg,1)
-    tab_reg{rowi,1}=(tab_reg{rowi,1}-para_add_list.conv_f(1))*para_add_list.conv_f(2);
-    sumsig=sin_mixture_simu(tab_reg{rowi,[1 2 3 4]},timevec_sub_front',0.0,'complex');
-    scalfactor=0.5;
-    sumsig(1)=sumsig(1)*scalfactor;
-    sumsig=[zeros([1,shifttimeadd]) sumsig];
-    spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig)',imag(sumsig)'),preheadpath,'temp');
-    tempmat=[tempmat; spec_new_sum{regseq,2}'];
-  end
-  % spec_ur=spec_ur/max(spec_ur)*max(sum(tempmat,1));
-  tempmat=tempmat/max(tempmat(:))*max(spec_ur);
-  stackmat=[stackmat; spec_ur];
-  stackmat=[stackmat; tempmat];
-  rgbarray=[rgbarray; repmat([0 1 0],[size(tempmat,1)+1,1])];
-  for sampi=[5 2]
-    spec_spike=ft_mat(sampi,regseq);
-    tabloc=matchtab(matchtab{:,'simulation'}==sampi,:);
-    % ground truth compnents
-    tab_reg=tabloc(tabloc{:,'PPM_est'}>regppm(1)&tabloc{:,'PPM_est'}<regppm(2),:);
-    [~,sortind]=sort(tab_reg{:,'PPM_est'});
-    tab_reg=tab_reg(sortind,:);
-    tempmat=[];
-    for rowi=1:size(tab_reg,1)
-      tab_reg{rowi,1}=(tab_reg{rowi,1}-para_add_list.conv_f(1))*para_add_list.conv_f(2);
-      sumsig=sin_mixture_simu(tab_reg{rowi,[1 3 2 4]},timevec_sub_front',0.0,'complex');
+  for regi=1:size(exampreg,1)
+    ppm_sele_range=exampreg(regi,:);
+    ppmbounds=sort(matchPPMs(ppm_sele_range,ppm));
+    ind_sele=ppmbounds(1):ppmbounds(2);
+    loc_para_tab=est_tab_renorm(est_tab_renorm{:,'PPM'}>ppm_sele_range(1)&est_tab_renorm{:,'PPM'}<ppm_sele_range(2),:);
+    stackmat=[];
+    for sampi=[nsample:-1:1]
+      tab_reg=loc_para_tab(loc_para_tab{:,'simulation'}==sampi,:);
+      tab_reg{:,1}=(tab_reg{:,1}-para_add_list.conv_f(1))*para_add_list.conv_f(2);
+      sumsig=sin_mixture_simu(tab_reg{:,[1 2 3 4]},timevec_sub_front',0.0,'complex');
       scalfactor=0.5;
       sumsig(1)=sumsig(1)*scalfactor;
       sumsig=[zeros([1,shifttimeadd]) sumsig];
-      spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig)',imag(sumsig)'),preheadpath,'temp');
-      tempmat=[tempmat; spec_new_sum{regseq,2}'];
+      spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig)',imag(sumsig)'),libdir,'temp');
+      stackmat=[stackmat; spec_new_sum{ind_sele,2}'];
     end
-    % spec_spike=spec_spike/max(spec_spike)*max(sum(tempmat,1));
-    tempmat=tempmat/max(tempmat(:))*max(spec_spike);
-    stackmat=[stackmat; spec_spike];
-    stackmat=[stackmat; tempmat];
-    rgbarray=[rgbarray; repmat([0.2 0.2 0.2],[size(tempmat,1)+1,1])];
+    refft=refspec(ind_sele);
+    stackmat=[refft/max(refft)*max(stackmat(1,:)); stackmat];
+    stackmat=flip(stackmat,1);
+    stackspec_time(stackmat,ppm(ind_sele)',0.0,5,['example_stack_plot'],'timeVect',specvec);
+    fig=gcf;
+    saveas(fig,['stack_example_region_sele' quanmethod num2str(regi) '.fig']);
+    close all;
+    % line plot for the regions
+    ind_reg=find(all(ppmpairtab>ppm_sele_range(1) & ppmpairtab<ppm_sele_range(2),2));
+    quan_coll_loc=quan_coll(ind_reg,:);
+    %
+    locxvec=repelem([1:nsample],length(ind_reg));
+    locyvec=quan_coll_loc(:);
+    pairsize_loc=length(find(ind_reg<=pairsize(1)));
+    pairsize_loc=[pairsize_loc length(ind_reg)-pairsize_loc(1)];
+    colorvec=repmat([repmat({'spike'},[pairsize_loc(1),1]);repmat({'urine'},[pairsize_loc(2),1])],[nsample,1]);
+    % plot
+    h=figure();
+    linecoll=[];
+    x_spikein=repelem([1:(nsample-1)],length(ind_reg));
+    y_spikein=quan_coll_loc(:,1:5);
+    y_spikein=y_spikein(:);
+    color_spikein=repmat([repmat({'spike'},[pairsize_loc(1),1]);repmat({'urine'},[pairsize_loc(2),1])],[nsample-1,1])';
+    for color_group=unique(color_spikein)
+      groupind=find(cellfun(@(x) strcmp(x,color_group),color_spikein));
+      % linear line
+      dlm=fitlm(x_spikein(groupind),y_spikein(groupind));
+      % % plot the line
+      % subh=plot(dlm);
+      % delete(subh([1,3,4]));
+      linecoll=[linecoll; dlm.Coefficients.Estimate'];
+    end
+    % plot points
+    gscatter(locxvec,locyvec,colorvec,[],[],[20]);
+    for linei=1:size(linecoll,1)
+      refline(linecoll(linei,2),linecoll(linei,1));
+    end
+    xlabel('spike volumn');
+    ylabel('estimation');
+    title(['quantificaiton estimation']);
+    set(gca,'XTick',1:6,'XTickLabel',sampnames);
+    saveas(h,['scatter_eval.' quanmethod num2str(regi) '_linepoints.fig']);
+    close(h);
   end
-  stackmat=flip(stackmat,1);
-  colorset=struct();
-  colorset.rgb=flip(rgbarray,1);
-  colorset.categories=table(flip([{'ref'},{'urine'},{'spike'}]'));
-  colorset.colorList=flip([1 0 0; 0 1 0; 0.2 0.2 0.2],1);
+  % scale each features (sample 3 spike 2 set as 2)
+  quan_coll_s2=quan_coll./quan_coll(:,3)*2;
+  % scatter plot
+  locxvec=repelem([1:nsample],npairs);
+  locyvec=quan_coll_s2(:);
+  colorvec=repmat([repmat({'spike'},[pairsize(1),1]);repmat({'urine'},[pairsize(2),1])],[nsample,1]);
   %
-  stackSpectra(stackmat,ppmsele,0.0,hshifts(regi),['temp'],'colors',colorset);
-  fig=gcf;
-  saveas(fig,['stack' num2str(regi) '.fig']);
-  close all;
-end
-
-% correlation network
-%% match peaks from different samples
-ppmlist={};
-namelist={};
-intlist={};
-est_tab_deconv=quan_str.deconv;
-est_tab_dec_subset={};
-groundtruth_tab_deconv=groundtruth_str.deconv;
-for runid=mixseq
-  loctab=est_tab_deconv(est_tab_deconv{:,'simulation'}==runid,:);
-  ppmlist=[ppmlist loctab{:,'PPM'}'];
-  namelist=[namelist {repmat({'unknown'},[1,size(loctab,1)])}];
-  intlist=[intlist loctab{:,'A'}];
-  est_tab_dec_subset=[est_tab_dec_subset {loctab}];
-end
-[ppmmatch_ind_all ppmvec]=ppm_list_match(ppmlist',namelist,'^unknown$',deltapm_threshold);
-mat_reshape_all=[];
-for isample=1:size(ppmmatch_ind_all,1)
-  intenvec=intlist{isample};
-  ppmind=ppmmatch_ind_all(isample,:);
-  intenarray=intenvec(ppmind);
-  mat_reshape_all=[mat_reshape_all; intenarray'];
-  est_tab_dec_subset{isample}=est_tab_dec_subset{isample}(ppmind,:);
-end
-%% match with ground truth peak sets
-subtab_true=groundtruth_tab_deconv(groundtruth_tab_deconv{:,'simulation'}==mixseq(1),:);
-distmat=abs(pdist2(ppmvec',subtab_true{:,'PPM'}));
-[ppm_match_val1,ppm_match_ind1]=min(distmat,[],2);
-[ppm_match_val2,ppm_match_ind2]=min(distmat,[],1);
-ind_true=[];
-ind_est=[];
-for ppm_min_i=1:length(ppm_match_ind1)
-  if ppm_match_ind2(ppm_match_ind1(ppm_min_i))==ppm_min_i%check for pairwise match
-    ind_true=[ind_true ppm_match_ind1(ppm_min_i)];
-    ind_est=[ind_est ppm_min_i];
+  h=figure();
+  gscatter(locxvec,locyvec,colorvec,[],[],[20]);
+  xlabel('spike volumn');
+  ylabel('estimation');
+  title(['quantificaiton estimation']);
+  set(gca,'XTick',1:6,'XTickLabel',sampnames);
+  saveas(h,['scatter_eval.' quanmethod '.fig']);
+  close(h);
+  % scale by range
+  quan_coll_shift=quan_coll;
+  quan_coll_shift(:,1:5)=quan_coll_shift(:,1:5)-quan_coll_shift(:,1);
+  quan_coll_s_scale=quan_coll_shift./quan_coll_shift(:,5)*4;
+  quan_coll_s_scale=quan_coll_s_scale(1:pairsize(1),:);
+  % scatter plot
+  locxvec=repelem([1:nsample],pairsize(1));
+  locyvec=quan_coll_s_scale(:);
+  colorvec=repmat([repmat({'spike'},[pairsize(1),1])],[nsample,1]);
+  %
+  h=figure();
+  gscatter(locxvec,locyvec,colorvec,[],[],[20]);
+  xlabel('spike volumn');
+  ylabel('estimation');
+  title(['quantificaiton estimation']);
+  set(gca,'XTick',1:6,'XTickLabel',sampnames);
+  saveas(h,['scatter_eval.' quanmethod 'scale2.fig']);
+  close(h);
+  % plot with linear lines
+  seleseq=1:pairsize(1);
+  [intensityscale ordind]=sort(quan_coll(seleseq,5));
+  cmap=jet(length(intensityscale));
+  cinfo=customColormap(intensityscale,'colors',cmap(1:end,:));
+  cmap=cinfo.rgb;
+  %
+  bvec=[];
+  fig=figure();
+  hold on;
+  for rowindi=1:length(ordind)
+    rowind=ordind(rowindi);
+    locxvec=[1:nsample];
+    locyvec=quan_coll(rowind,:);
+    gscatter(locxvec,locyvec,[],cmap(rowindi,:),[],[20]);
+    groupind=1:5;
+    % linear line
+    dlm=fitlm(locxvec(groupind),locyvec(groupind));
+    para=dlm.Coefficients.Estimate'
+    hline=refline(para(2),para(1));
+    hline.Color=cmap(rowindi,:);
+    bvec=[bvec para(1)];
   end
+  xlabel('spike volumn');
+  ylabel('estimation');
+  title(['quantificaiton estimation']);
+  set(gca,'XTick',1:6,'XTickLabel',sampnames);
+  % make a separate colorbar
+  colormap(cinfo.cmap);
+  t=colorbar;
+  ticks=intensityscale;
+  set(t,'Ticks',(ticks-min(ticks))/range(ticks));
+  set(t,'TickLabels',num2cell(round(ticks,2)));
+  set(get(t,'ylabel'),'String','intensity');
+  set(gca,'FontSize',20);
+  saveas(fig,['scatter_eval.' quanmethod 'all_linepoints.fig']);
+  close(fig);
+  quan_record.(quanmethod)=quan_coll;
 end
-mat_reshape_all=mat_reshape_all(:,ind_est);
-ppmvec=ppmvec(ind_est);
-for runid=1:length(est_tab_dec_subset)
-  est_tab_dec_subset{runid}=est_tab_dec_subset{runid}(ind_est,:);
-end
-%
-namesall=strcat({'unknown'},cellstr(num2str(ppmvec'))');
-%% correlation network
-threhold_corr=0.9;
-cor_intensity=corr(mat_reshape_all,mat_reshape_all,'Type','Spearman');
-indmat=zeros(size(cor_intensity));
-lenmat=size(cor_intensity,1);
-for i=1:lenmat
-  indmat(i,(i+1):lenmat)=1;
-end
-triaind=find(indmat);
-cor_intensity_triag_vec=cor_intensity(triaind);
-cor_intensity_triag=cor_intensity;
-cor_intensity_triag(~indmat)=0;
-%%edge threhold
-thres_display_vec_inten=0.9
-%%%positive correlation of intensity
-[rowind colind]=find(cor_intensity_triag>=thres_display_vec_inten);
-node1={};
-node2={};
-correlation=[];
-for elei=1:length(rowind)
-  roweleind=rowind(elei);
-  coleleind=colind(elei);
-  node1{elei}=namesall{roweleind};
-  node2{elei}=namesall{coleleind};
-  correlation(elei)=cor_intensity_triag(roweleind,coleleind);
-end
-cornet_table_corr=table(node1',node2',correlation','VariableNames',{'source' 'target' 'association'});
-writetable(cornet_table_corr,'deconv_corr_thres0_9.txt','Delimiter','\t');
-
-% peak plot
-preheadpath='/Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/spec_deconv_time_domain/result/publicaiton_spec_decomp/result_reproduce/urine_spikin/archive/data_exap/1/test_trans.fid';
-est_tab_deconv=quan_str.deconv;
-for sampi=[mixseq purespec_str.ref]
-  loctab=est_tab_deconv{est_tab_deconv{:,'simulation'}==sampi,[1:4]};
-  loctab_f=loctab;
-  loctab_f(:,1)=(loctab_f(:,1)-para_add_list.conv_f(1))*para_add_list.conv_f(2)
-  sumsig=sin_mixture_simu(loctab_f,timevec_sub_front,nan,'complex');
+% spaced whole stack plot
+specvec=[0 10 10 10 10 50 50];
+ppm_sele_range=[-0.5 9.0];
+ppmbounds=sort(matchPPMs(ppm_sele_range,ppm));
+ind_sele=ppmbounds(1):ppmbounds(2);
+loc_para_tab=est_tab_renorm(est_tab_renorm{:,'PPM'}>ppm_sele_range(1)&est_tab_renorm{:,'PPM'}<ppm_sele_range(2),:);
+stackmat=[];
+for sampi=[nsample:-1:1]
+  tab_reg=loc_para_tab(loc_para_tab{:,'simulation'}==sampi,:);
+  tab_reg{:,1}=(tab_reg{:,1}-para_add_list.conv_f(1))*para_add_list.conv_f(2);
+  sumsig=sin_mixture_simu(tab_reg{:,[1 2 3 4]},timevec_sub_front',0.0,'complex');
   scalfactor=0.5;
   sumsig(1)=sumsig(1)*scalfactor;
-  sumsig=[zeros([shifttimeadd,1]); sumsig];
-  spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig),imag(sumsig)),preheadpath,'temp');
-  new_spec_vec=spec_new_sum{:,2};
-  %
-  ft_raw=ft_mat(sampi,:)';
-  dssrang=sort(matchPPMs(ppmrange_dss,ppm));
-  dssind=dssrang(1):dssrang(2);
-  ft_raw=ft_raw/max(ft_raw(dssind))*max(new_spec_vec(dssind));
-  %
-  fig=figure();
-  plotr(ppm,ft_raw,'LineWidth',2);
-  hold on;
-  plotr(ppm,new_spec_vec,'LineWidth',2);
-  legend('raw','estimation');
-  stem(loctab(:,1),loctab(:,3)/max(loctab(:,3))*max(ft_raw));
-  saveas(fig,['spec_stem' num2str(sampi) '.fig']);
-  close all;
+  sumsig=[zeros([1,shifttimeadd]) sumsig];
+  spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig)',imag(sumsig)'),libdir,'temp');
+  stackmat=[stackmat; spec_new_sum{ind_sele,2}'];
 end
+refft=refspec(ind_sele);
+stackmat=[refft/max(refft)*max(stackmat(1,:)); stackmat];
+stackmat=flip(stackmat,1);
+stackspec_time(stackmat,ppm(ind_sele)',0.0,5,['example_stack_plot'],'timeVect',specvec);
+fig=gcf;
+saveas(fig,['stack_example_region_all.fig']);
+close all;
