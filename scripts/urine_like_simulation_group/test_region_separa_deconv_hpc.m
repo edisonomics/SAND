@@ -2,11 +2,11 @@
 % the folder structure ./temp, ./data, ./res
 close all;
 clear all;
-addpath(genpath('/home/yw44924/metabolic_toolbox_open/Edison_Lab_Shared_Metabolomics_UGA'));
-addpath(genpath('/home/yw44924/nmr_spec_decomp/SAND'));
+addpath(genpath('/PATHTO/Edison_Lab_Shared_Metabolomics_UGA'));
+addpath(genpath('/PATHTO/nmr_spec_decomp/SAND'));
 distcomp.feature('LocalUseMpiexec',false);
 tic;
-shelladd='source /home/yw44924/.cshrc';
+shelladd='source /PATHTO/.cshrc';
 defaultProfile=parallel.defaultClusterProfile;
 p=parcluster(defaultProfile);
 p.JobStorageLocation=strcat('./temp/',getenv('SLURM_JOB_ID'))

@@ -8,7 +8,7 @@
 #SBATCH --error=fid_prepro.%j.err      # Standard error log
 #SBATCH --cpus-per-task=45             # Number of CPU cores per task
 #SBATCH --mail-type=END,FAIL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
-#SBATCH --mail-user=yuewu_mike@163.com  # Where to send mail
+#SBATCH --mail-user=Your@email  # Where to send mail
 
 cd $SLURM_SUBMIT_DIR
 

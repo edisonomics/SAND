@@ -3,18 +3,18 @@
 % for worm data
 close all;
 clear all;
-shelladd='source /home/yw44924/.cshrc';
+shelladd='source /PATHTO/.cshrc';
 %% Set your toolbox paths; functions imported from these directories:
 % rmpath(genpath('/Users/yuewu/Dropbox (Edison_Lab@UGA)/Projects/Bioinformatics_modeling/matalb.lib/plstoolbox/PLS_Toolbox_881/'));
 % Metabolic toolbox toolbox found @  https://github.com/artedison/Edison_Lab_Shared_Metabolomics_UGA
-localPaths.public_toolbox='/home/yw44924/metabolic_toolbox_open/Edison_Lab_Shared_Metabolomics_UGA/';
+localPaths.public_toolbox='/PATHTO/Edison_Lab_Shared_Metabolomics_UGA/';
 % NMR decompositon program found @ https://github.com/edisonomics/SAND
-localPaths.nmrdecomp_path='/home/yw44924/nmr_spec_decomp/SAND/';
+localPaths.nmrdecomp_path='/PATHTO/SAND/';
 addpath(genpath(localPaths.public_toolbox));
 addpath(genpath(localPaths.nmrdecomp_path));
 pause(1),clc
 % the path should be changed accordingly in the users' computer
-paredir='/lustre2/scratch/yw44924/worm_nmr_fd/'
+paredir='/PATHTO/worm_nmr_fd/'
 datadir=[paredir 'data/'];
 rundir=[paredir];
 pipescriptdir=[localPaths.nmrdecomp_path 'scripts/worm_data/pipe_script/'];
