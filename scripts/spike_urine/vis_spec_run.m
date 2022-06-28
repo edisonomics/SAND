@@ -345,10 +345,12 @@ for quanmethod=quan_methods
 end
 % spaced whole stack plot
 specvec=[0 10 10 10 10 50 50];
-ppm_sele_range=[-0.5 9.0];
+ppm_sele_range=[0.5 9.0];
+remreg=[4.681 4.887];%the water signals
 ppmbounds=sort(matchPPMs(ppm_sele_range,ppm));
 ind_sele=ppmbounds(1):ppmbounds(2);
 loc_para_tab=est_tab_renorm(est_tab_renorm{:,'PPM'}>ppm_sele_range(1)&est_tab_renorm{:,'PPM'}<ppm_sele_range(2),:);
+loc_para_tab=loc_para_tab(loc_para_tab{:,1}<remreg(1)|loc_para_tab{:,1}>remreg(2),:);
 stackmat=[];
 for sampi=[nsample:-1:1]
   tab_reg=loc_para_tab(loc_para_tab{:,'simulation'}==sampi,:);
@@ -365,5 +367,5 @@ stackmat=[refft/max(refft)*max(stackmat(1,:)); stackmat];
 stackmat=flip(stackmat,1);
 stackspec_time(stackmat,ppm(ind_sele)',0.0,5,['example_stack_plot'],'timeVect',specvec);
 fig=gcf;
-saveas(fig,['stack_example_region_all.fig']);
+saveas(fig,['stack_example_region_all.ps']);
 close all;
