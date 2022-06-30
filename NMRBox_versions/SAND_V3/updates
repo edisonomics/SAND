@@ -1,0 +1,2 @@
+This version updates:
+-it now has an option to submit the job automatically to any node of NMRBox which runs MATLAB 2021b by internal scheduler HTCondor by "-x all"
