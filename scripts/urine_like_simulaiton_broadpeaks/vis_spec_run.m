@@ -149,6 +149,7 @@ for type=fieldnames(quan_str)'
   quan_str.(type)=tempdata;
 end
 % match estimation with ground truth
+thres_ppm_del=0.01;
 summ_str=struct();
 for type=fieldnames(quan_str)'
   type=type{1};
@@ -181,7 +182,17 @@ for type=fieldnames(quan_str)'
     subtab_est_match.Properties.VariableNames={'PPM_est','A_est','lambda_est','phase_est'};
     subtab_true_match=subtab_true(ind_true,{'PPM','A','lambda','phase','simulation'});
     subtab_true_match.Properties.VariableNames={'PPM_true','A_true','lambda_true','phase_true','simulation'};
-    summtab=[summtab; [subtab_est_match subtab_true_match]];
+    loctab_simu=[subtab_est_match subtab_true_match];
+    % distinguish close peaks from others
+    closppm=[];
+    ppmvec_loc=subtab_est{:,'PPM'};
+    for peaki=1:length(ppmvec_loc)
+      ppmdist_min=min(abs(ppmvec_loc(1:end ~=peaki)-ppmvec_loc(peaki)));
+      closppm=[closppm ppmdist_min<thres_ppm_del];
+    end
+    loctab_simu=addvars(loctab_simu,closppm(ind_est)','After','simulation','NewVariableNames','closepeaks');
+    %
+    summtab=[summtab; loctab_simu];
     rec_ratio=[rec_ratio size(subtab_est_match,1)/size(subtab_true,1)];
   end
   % summtab=summtab(summtab{:,'A_est'}>10^-3 & summtab{:,'A_true'}>10^-3,:);
@@ -239,7 +250,7 @@ for samptype=samptypes
     summtab=summ_str.(type).summtab;
     evalu=evalu_str.(type);
     h=figure();
-      gscatter(summtab{:,'A_true'},summtab{:,'A_est'},summtab{:,'simulation'},[],[],[20]);
+      gscatter(summtab{:,'A_true'},summtab{:,'A_est'},summtab{:,'closepeaks'},[],[],[20]);
       xlabel('ground truth');
       ylabel('estimation');
       title([type ' correlation ' num2str(evalu.corxy), ' mse ' num2str(evalu.mse) ' k ' num2str(evalu.k)]);
@@ -255,7 +266,7 @@ for samptype=samptypes
   % lambda estimation decompositon
   summtab=summ_str.deconv.summtab;
   h=figure();
-    gscatter(summtab{:,'lambda_true'},summtab{:,'lambda_est'},summtab{:,'simulation'},[],[],[20]);
+    gscatter(summtab{:,'lambda_true'},summtab{:,'lambda_est'},summtab{:,'closepeaks'},[],[],[20]);
     xlabel('ground truth');
     ylabel('estimation');
     title([' lambda correlation ' num2str(evalu_str.deconv.corxylambda) ' k ' num2str(evalu_str.deconv.klambda)]);
