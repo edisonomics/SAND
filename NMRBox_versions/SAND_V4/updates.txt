@@ -1,0 +1,5 @@
+This version updates:
+-folder structure is revised.
+-NMRPipe functions are now in a different folder called nmrpipe_scripts in the root of SAND. So, user can easily find and modify proc.com for preprocessing.
+-annotation of functions revised
+-It now uses Edisonomics GitHub.
