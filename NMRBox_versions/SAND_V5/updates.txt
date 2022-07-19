@@ -1,0 +1,4 @@
+preprocessed data now can be input to the SAND.
+Bruker time shift problem between different data sets have been resolved.
+range of PPM can be as an input in the preprocessing step.
+the number of bins to be grouped together added to the SAND in the preprocessing step.
