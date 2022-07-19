@@ -1,6 +1,6 @@
 #!/bin/csh
 # convert the fid into nmrpipe format
-# NMRBox default NMRPipe function (need to be changed by USER based on data): OS 6-20-2022
+# NMRBox default NMRPipe function (need to be changed by USER based on data): OS 07-18-2022
 
 cd ..
 
@@ -8,20 +8,24 @@ bruker -AUTO > conv.out
 chmod a+rx ./fid.com
 fid.com > conv.out
 #
-basicFT1.com -in test.fid -out test.ft1 -scaleTo 1000.0 -xELB 0.3 \
-             -xP0 Auto -xP1 0 -xBASEARG POLY,auto,ord=0,window=2% \
-             -apOrd 0 -apArgs apx1=-2.0ppm,apxn=-4.0ppm,apMode=rms,apxP0Step=0.1
+basicFT1.com \
+-in test.fid -scaleTo 1000.0 -xELB 0.3 \
+-xBASEARG POLY,auto,ord=0,window=2% -xP0 Auto -xP1 0\
+-apOrd 0 -apArgs apx1=-1ppm,apxn=-3ppm,apMode=rms,apxP0Step=0.1  -out test.ft1
 
-ref1D.tcl -in test.ft1 -tab ref.tab -x1 0.05ppm -xn -0.05ppm -xRef 0.0 -max
-interpNMR -ref ../1/test.ft1 -in test.ft1 -out test.ft1
 # a process without line broadening
-basicFT1.com -in test.fid -out test2.ft1 -scaleTo 1000.0 -xELB 0 \
-             -xP0 Auto -xP1 0 -xBASEARG POLY,auto,ord=0,window=2% \
-             -apOrd 0 -apArgs apx1=-2.0ppm,apxn=-4.0ppm,apMode=rms,apxP0Step=0.1
+basicFT1.com \
+-in test.fid -scaleTo 1000.0 -xELB 0 \
+-xBASEARG POLY,auto,ord=0,window=2% -xP0 Auto -xP1 0 \
+-apOrd 0 -apArgs apx1=-1.0ppm,apxn=-3.0ppm,apMode=rms,apxP0Step=0.1 -out test2.ft1
+
 
 ref1D.tcl -in test2.ft1 -x1 0.05ppm -xn -0.05ppm -xRef 0.0 -max
 interpNMR -ref ../1/test.ft1 -in test2.ft1 -out test2.ft1
 # rescale.com -in test.ft1 -out test.ft1 -x1 2.8ppm -xn 1.8ppm
+
+ref1D.tcl -in test.ft1 -tab ref.tab -x1 0.05ppm -xn -0.05ppm -xRef 0.0 -max
+interpNMR -ref ../1/test.ft1 -in test.ft1 -out test.ft1
 
 # change ft header
 sethdr test.ft1 -title spec
