@@ -109,13 +109,13 @@ quan_str.integral=est_other_tab(:,{'PPM','lambda','integral','phase','simulation
 save('data_temp.mat')
 % match peaks from different samples
 % example visualization regions
-exampreg=[0.965 1.047; 1.457 1.495; 1.73 1.774; 4.61 4.67; 5.2 5.3; 6.887 6.917; 7.339 7.353; 7.851 7.869];
+exampreg=[0.965 1.047; 1.457 1.495; 1.73 1.774; 4.61 4.685; 5.2 5.3; 6.887 6.917; 7.339 7.353; 7.813 7.869];
 % peak match for spike in peaks [ref bin, mixture bin]
 ppmref_match=[0.97 0.98 0.97 0.98; 0.983 0.99 0.983 0.99; 1.02 1.03 1.02 1.03; 1.035 1.042 1.035 1.042; 1.468 1.473 1.472 1.477; 1.48 1.485 1.484 1.489; 1.733 1.746 1.733 1.746; 1.746 1.761 1.746 1.761; 1.761 1.773 1.761 1.773; 1.895 1.902 1.897 1.904; 3.373 3.38 3.383 3.388; 3.389 3.396 3.399 3.405; 3.593 3.599 3.605 3.609; 3.601 3.607 3.612 3.616; 4.624 4.637 4.633 4.645; 4.637 4.649 4.648 4.658; 5.218 5.224 5.228 5.234; 5.224 5.231 5.234 5.241; 6.89 6.902 6.927 6.939; 6.904 6.913 6.943 6.953; 7.34 7.351 7.371 7.382; 7.853 7.868 7.87 7.883; 3.478 3.484 3.487 3.494];
 % ppmref_hard=[3.218 3.226 3.228 3.232; 3.237 3.24 3.244 3.249; 3.248 3.254 3.257 3.26; 3.406 3.411 3.414 3.419];
 % ppmref_match=[ppmref_match; ppmref_hard];
 % peak match for urine peaks
-ppmurine_match=[1.466 1.471 1.466 1.471; 1.479 1.483 1.479 1.483; 1.913 1.917 1.912 1.915];%; 4.043 4.057 4.043 4.057
+ppmurine_match=[1.466 1.471 1.466 1.471; 1.479 1.483 1.479 1.483; 1.913 1.917 1.912 1.915; 7.814 7.827 7.814 7.827; 4.673 4.684 4.673 4.684];%; 4.043 4.057 4.043 4.057
 est_tab_renorm=est_tab;
 vol_add=[0,20,40,60,80,20];%the last one is reference
 sampnames={'0 (urine)','20','40','60','80','ref'};
@@ -266,6 +266,7 @@ for quanmethod=quan_methods
     end
     xlabel('spike volumn');
     ylabel('estimation');
+    ylim([0 inf]);
     title(['quantificaiton estimation' num2str(ppm_sele_range(1)) ' ' num2str(ppm_sele_range(2))]);
     set(gca,'XTick',1:6,'XTickLabel',sampnames);
     saveas(h,['scatter_eval.' quanmethod num2str(regi) '_linepoints.fig']);
@@ -369,3 +370,35 @@ stackspec_time(stackmat,ppm(ind_sele)',0.0,5,['example_stack_plot'],'timeVect',s
 fig=gcf;
 saveas(fig,['stack_example_region_all.ps']);
 close all;
+
+%plot a few example regions subview
+ppmreg=[1.3 1.55; 4.3 4.7; 7.8 8.2];
+sampi=5;
+spec_exp=ft_mat(sampi,:);
+for rowi=1:size(ppmreg,1)
+  ppmregloc=ppmreg(rowi,:);
+  tab_reg=loc_para_tab(loc_para_tab{:,'simulation'}==sampi,:);
+  tab_reg=tab_reg(tab_reg{:,'PPM'}>ppmregloc(1) & tab_reg{:,'PPM'}<ppmregloc(2),:);
+  tab_reg{:,1}=(tab_reg{:,1}-para_add_list.conv_f(1))*para_add_list.conv_f(2);
+  sumsig=sin_mixture_simu(tab_reg{:,[1 2 3 4]},timevec_sub_front',0.0,'complex');
+  scalfactor=0.5;
+  sumsig(1)=sumsig(1)*scalfactor;
+  sumsig=[zeros([1,shifttimeadd]) sumsig];
+  spec_new_sum=ft_pipe(table([1:length(sumsig)]',real(sumsig)',imag(sumsig)'),libdir,'temp');
+  %
+  ppmbounds=sort(matchPPMs(ppmregloc,ppm));
+  ind_sele=ppmbounds(1):ppmbounds(2);
+  spec_est=spec_new_sum{ind_sele,2}'
+  % exp measurement
+  refft=spec_exp(ind_sele);
+  refft=refft/max(refft)*max(spec_est);
+  %
+  fig=figure();
+  plotr(ppm(ind_sele)',spec_est);
+  hold on;
+  plotr(ppm(ind_sele)',refft);
+  legend('estimation','experimental');
+  fig=gcf;
+  saveas(fig,['reg_plot' num2str(rowi) '.fig']);
+  close all;
+end
