@@ -36,4 +36,4 @@ A general process of the spectral decomposiiton include preprocess the spectra, 
 
 # Running SAND on NMRBox
 
-NMRBox provides virtual environment and efficient support on processing and analyzing NMR data. Data can be efficiently transferred to NMRBox and the analysis can start and end there.
+NMRBox provides virtual environment and efficient support on processing and analyzing NMR data. Data can be efficiently transferred to NMRBox and the analysis can start and end there. A full tutorial for running SAND on NMRBox will be provided in the paper suppementary files.
