@@ -1,0 +1,4 @@
+command names revised
+now works with MATLAB R2022a
+MATLAB warnings addressed
+help argument was added (-h)
