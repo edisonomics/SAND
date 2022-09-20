@@ -5,7 +5,7 @@
 # NMRBox default NMRPipe function (don't need to be changed): OS 6-20-2022
 
 cd ../
-rm -r mask_matlab mask_fid_matlab mask_ft_matlab sum_matlab ori_matlab
+rm -f -r mask_matlab mask_fid_matlab mask_ft_matlab sum_matlab ori_matlab
 mkdir mask_matlab mask_fid_matlab mask_ft_matlab sum_matlab ori_matlab
 
 cd ./mask_fid
