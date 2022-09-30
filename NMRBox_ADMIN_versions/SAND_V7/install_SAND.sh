@@ -10,7 +10,6 @@ git clone --depth 1 https://github.com/artedison/Edison_Lab_Shared_Metabolomics_
 cp $ORIGIN/PRESAND.sh .
 cp $ORIGIN/SAND.sh .
 #chmod a+rx ./SUBMITSAND.sh
-chmod a+rx ./pipe_scripts/*
 
 #export PATH=$PATH:/home/nmrbox/osanati/read-only/test1/
 #export SANDPATH=/home/nmrbox/osanati/read-only/test1
