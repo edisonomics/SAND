@@ -5,7 +5,12 @@ ORIGIN=$(dirname $(readlink -f $0))
 
 svn export https://github.com/edisonomics/SAND/trunk/scripts/NMRBox/pipe_scripts
 svn export https://github.com/edisonomics/SAND/trunk/src
-git clone --depth 1 https://github.com/artedison/Edison_Lab_Shared_Metabolomics_UGA.git
+mkdir -p Edison_Lab_Shared_Metabolomics_UGA
+(
+	cd Edison_Lab_Shared_Metabolomics_UGA
+	svn export https://github.com/artedison/Edison_Lab_Shared_Metabolomics_UGA/trunk/metabolomics_toolbox
+)
+
 #mkdir data temp log submissions data_preprocessed
 cp $ORIGIN/PRESAND.sh .
 cp $ORIGIN/SAND.sh .
