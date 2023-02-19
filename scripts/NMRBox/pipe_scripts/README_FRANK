@@ -1,0 +1,6 @@
+
+Adjusted bands.com to remove offset subtraction of bins 1/11/2023
+
+fd 1/13/2023:
+Remove trailing # comments, which are ok in sh/bash but not ok in csh
+Replace ref1D.tcl/interpNMR with copyHdr.tcl

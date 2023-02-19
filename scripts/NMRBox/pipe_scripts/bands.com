@@ -14,15 +14,38 @@
 # "set region 12ppm 0.0ppm to 1.0". The band masks are created via operations
 # that generate a rising or falling cosine-square ramp.
 # NMRBox default NMRPipe function (don't need to be changed): OS 6-20-2022
+#
+# fd 1/13/2023 add command line option to toggle subtraction of min value from each bin.
 
 cd ../
 
-set T_r=0.05 #intial processing boundary size
-set rollOffWidthPPM=0.02 #the rollOff boundary size on each side
+
+echo "Executing SAND NMRPipe script bands.com (`pwd`) ..."
+
+@ subtractMinFlag = 1
+
+# Intial processing boundary size
+# RollOff boundary size on each side
+
+set T_r             = 0.05 
+set rollOffWidthPPM = 0.02 
+
 set inName          = (`getArgD $argv -in         test.ft1`)
 set specPrefix      = (`getArgD $argv -specPrefix spec`)
 set maskPrefix      = (`getArgD $argv -maskPrefix mask`)
-set bandWidthPPM    = (`getArgD $argv -bw         $T_r`)#not for each ppm range but only for the initial spectral processing
+
+if (`flagLoc $argv -subMin`) then
+   @ subtractMinFlag = 1
+endif
+
+if (`flagLoc $argv -nosubMin`) then
+   @ subtractMinFlag = 0
+endif
+
+#
+# Not for each ppm range but only for the initial spectral processing
+
+set bandWidthPPM    = (`getArgD $argv -bw $T_r`)
 
 if (`flagLoc $argv -help`) then
    echo "Create a Series of Band Selection Masks:"
@@ -30,6 +53,9 @@ if (`flagLoc $argv -help`) then
    echo " -specPrefix specPrefix         [$specPrefix]"
    echo " -maskPrefix maskPrefix         [$maskPrefix]"
    echo " -bw         bandWidthPPM       [$bandWidthPPM]"
+   echo "Subtraction of Min Values in Each Bin:"
+   echo " -subMin     Subtract min values from each bin (Default)." 
+   echo " -nosubMin   Do not subtract min values from each bin."
    exit 0
 endif
 
@@ -90,15 +116,17 @@ sethdr $edgeFIDName -title ift_masked_edges
 # For each mask, multiply it by the original spectrum.
 # Inverse process the masked result (to increased stability, window function is not removed).
 
-set file='binrange.txt'
-set rangel=(`awk '{print $1}' "$file"`)
-set ranger=(`awk '{print $2}' "$file"`)
-set len=${#rangel}
+set file   = 'binrange.txt'
+set rangel = (`awk '{print $1}' "$file"`)
+set ranger = (`awk '{print $2}' "$file"`)
+set len    = ${#rangel}
 
 @ i = 1
 
 set vFlag = "-verb"
-rm record.txt
+
+/bin/rm -f record.txt
+
 while ($i <= $len)
    set thisName = (`nmrPrintf "%s/test%03d.ft1" $outDir $i`)
    set ftName   = (`nmrPrintf "%s/test%03d.ft1" $ftDir  $i`)
@@ -119,9 +147,13 @@ while ($i <= $len)
           rampUp   region ${x1}ppm ${x2}ppm        then \
           set      region ${x2}ppm ${x3}ppm to 1.0 then \
           rampDown region ${x3}ppm ${x4}ppm
-   
-   normSpec.tcl $vFlag -in $inName -out $ftName \
-    -prog subtract min of region ${x1}ppm ${x4}ppm
+
+   if ($subtractMinFlag) then
+      normSpec.tcl $vFlag -in $inName -out $ftName \
+       -prog subtract min of region ${x1}ppm ${x4}ppm
+   else
+      /bin/cp $inName $ftName
+   endif
   
    addNMR -in1 $ftName -in2 $thisName -out $ftName -mult
    
@@ -160,14 +192,20 @@ sethdr ${maskPrefix}_sum_ft.ft1  -title bands_sum
 sethdr ${maskPrefix}_sum_ift.fid -title ift_bands_sum
 
 echo ""
-echo "1. Input Spectrum:                            $inName"
-echo "2. Mask for Edges:                            $edgeName"
-echo "3. Masks for Bands                            ${maskPrefix}/test%03d.ft1"
-echo "4. Input Spectrum, Edges Masked (1)x(2):      $edgeFTName"
-echo "5. Inverse Processing of (4):                 $edgeFIDName"
-echo "6. Spectral Bands (1)x(2)x(3):                ${maskPrefix}_ft/test%03d.fid"
-echo "7. Sum of All Masks (3):                      ${maskPrefix}_sum.ft1"
-echo "8. Sum of Masked Spectra (6), Divided by (7): ${maskPrefix}_sum_ft.ft1"
-echo "9. Inverse Processing of (8):                 ${maskPrefix}_sum_ift.fid"
+echo " 1. Input Spectrum:                            $inName"
+echo " 2. Mask for Edges:                            $edgeName"
+echo " 3. Masks for Bands                            ${maskPrefix}/test%03d.ft1"
+echo " 4. Input Spectrum, Edges Masked (1)x(2):      $edgeFTName"
+echo " 5. Inverse Processing of (4):                 $edgeFIDName"
+echo " 6. Spectral Bands (1)x(2)x(3):                ${maskPrefix}_ft/test%03d.fid"
+echo " 7. Sum of All Masks (3):                      ${maskPrefix}_sum.ft1"
+echo " 8. Sum of Masked Spectra (6), Divided by (7): ${maskPrefix}_sum_ft.ft1"
+echo " 9. Inverse Processing of (8):                 ${maskPrefix}_sum_ift.fid"
+
+if ($subtractMinFlag) then
+   echo "10. Subtract Min Value from Each Bin:          Yes"
+else
+   echo "10. Subtract Min Value from Each Bin:          No"
+endif
 
 cd ./script
