@@ -1,0 +1,90 @@
+# help SAND V7: 12-28-2022 OS
+#This software is provided "as is" with no warranties of any kind,  and without liability for use or loss of use.
+----------------------------------------------------------------------------------------------------------------
+# To install the time-domain analysis (FOR ADMIN ONLY):
+# - chmod a+x install_SAND.sh | ./install_SAND.sh
+# - if you have done the last step you have created three folders there: two GitHub repository folders (from edisonomics). 
+# - now assign environment variable SANDPATH to the installation folder in .cshrc
+# - next add the installation folder to the PATH: export PATH=$PATH:"HERE"
+-----------------------------------------------------------------------------------------------------------------
+# Now, put your collected NMR data (bruker format) under a folder which should have 'test.ft' file in each folder's experiment.
+-----------------------------------------------------------------------------------------------------------------------
+# 2- do preprocessing and binning and check the FT spectrum after that to make sure about the phase correction: PRESAND
+# 2-1- you can define the PPM range -l and -u. example:
+# 	PRESAND -l -0.4 -u 10 
+# 2-2- you can change number of bins in each cluster by -g. example: 
+#	(default): -g 3
+# 2-3- to show only help, use -h
+# 2-4- to refer to the input folder use -I. Folder must include numerical Bruker style experiment folder structure with .ft processed files (for already preprocessed data)
+
+#Errors:
+#"try again! wrong inputs: choose you preprocessed status by 1 or 0!"
+#"try again! wrong inputs: choose lower/upper limit ppms correctly!"
+#"try again! wrong inputs: choose number of bins in each group correctly!"
+----------------------------------------------------------------------------------------------
+# To run the job on the local server which already signed in:
+# 3- do the time-domain analysis: SAND
+# 3-1- you can define which experiments (adjusted numbers) to run time analysis on them by -a and -b. example:
+# 	SAND -a 2 -b 5 -O test: run SAND.sh on folders 2,3,4,5 of the preprocessed data with the name of "test"
+# 3-2- you can change the maximum number of signals (after the deconvolution process) in each bin using -s. example: -s 8
+#	(default): -s 7
+# 3-3- you can change the number of iterations in MCMC (in the deconvolution process) using -n. example: -n 3000
+#	(default): -n 2000
+# 3-4- you can change the temperature in the MCMC process using -t. example: -t 50
+#	(default): -t 80
+# 3-5- you "must" assign names to the run by -O. example: -O no1
+# 3-6- to show only help, use -h
+# 3-7- to refer to the input folder use -I. Folder must include numerical folder structure of Bruker style with .ft processed files (for already preprocessed data) with NMRPipe. YOU MUST FIRST RUN PRESAND.
+# 3-8-  you can change the max of linewidth by -L. Ex. -L 25
+#       (default): -L 15
+# 3-9-	you can change the min of linewidth by -K. Ex. -K 1
+#       (default): -K 0.01
+# 3-10-	you can change the seed by -D. Ex. -D 2
+#       (default): -D 1
+# 3-11-	you can change the number of cores for the interactive mode by -C. Ex. -C 20
+#       (default): -C max/2
+
+
+	
+# Errors:
+# when it shows "try again! wrong experiment number!": -a X -b Y : X and Y do not match the folder experiment numbers (adjusted numbers) under the ./res/nmrpipe_dir => check X and Y or preprocessed data again. NO PROCESSING IS DONE!
+----------------------------------------------------------------------------------------------------------------
+# To submit the job for time-domain analysis to the HTCondor manually or automatically:
+# 3- submit the time-domain analysis. example:
+#	SUBMITSAND -a 2 -b 5  -x chromium.nmrbox.org  -O no1 -z 100
+# 3-1- you can define which experiments (adjusted numbers) to run time analysis on them by -a and -b. example:
+# 	 -a 2 -b 5: it runs on folders 2,3,4,5 of the preprocessed data
+# 3-2- you "must" define which server to run time analysis on them by -x. 
+#	example: -x chromium.nmrbox.org : only chromium is chosen
+#	example: -x all : let the HTCondor find server for you using internal scheduler
+# 3-3- you can define how many cores to run time analysis on them by -z. example: -z 100
+#	(default): -z 100
+# 3-4- you "must" assign names to the run by -O. example: -O no1
+# 3-5- you can change the maximum number of signals (after the deconvolution process) in each bin using -s. example: -s 8
+#	(default): -s 7
+# 3-6- you can change the number of iterations in  the MCMC (deconvolution process) using -n. example: -n 3000
+#	(default): -n 2000
+# 3-7- you can change the temperature in  the MCMC (deconvolution process) using -t. example: -t 50
+#	(default): -t 80
+# 3-8- to show only help, use -h
+# 3-9- to refer to the input folder use -I. Folder must include numerical folder structure of Bruker style with .ft processed files (for already preprocessed data) with NMRPipe. YOU MUST FIRST RUN PRESAND. 
+# 3-10-  you can change the max of linewidth by -L. Ex. -L 25
+#       (default): -L 15
+# 3-11-	you can change the min of linewidth by -K. Ex. -K 1
+#       (default): -K 0.01
+# 3-12-	you can change the seed by -D. Ex. -D 2
+#       (default): -D 1
+	
+# Errors:
+# when it shows "try again! wrong experiment number!": -a X -b Y: X and Y do not match the folder experiment numbers (adjusted numbers) under the ./res/nmrpipe_dir => check X and Y or preprocessed data again. NO PROCESSING IS DONE!
+# when it shows "try again! wrong inputs: choose servers and names correctly!": you did not assign server name (-x) and/or name of job (-O)
+# when it shows "try again! Job name already exists, choose a different name correctly!": your input name of the job (-O) is already entered in the past and there is a folder with its name under ./log folder
+---------------------------------------------------------------------------------------------------------------
+V8
+
+These scripts are adjusted versions of:
+
+/public/groups/sand/meeting/V7_latest_updates/merged_revised_Yue_and_omid_frank/
+
+frank.delaglio@nist.gov 1/24/2023
+
