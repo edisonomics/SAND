@@ -1,5 +1,5 @@
 #!/bin/bash
-# SAND V8 Updated 4/5/2023 frank.delaglio@nist.gov
+# SAND V8: 2/13/2023 frank.delaglio@nist.gov
 # This software is provided "as is" with no warranties of any kind,  and without liability for use or loss of use.
 # MODIFIED to include LAMDAMIN, SEED, NCPU_12/28/2022 OS
 
@@ -10,7 +10,7 @@
 #ORIGIN:    where commands are called
 #MATLAB_EXE MATLAB command
 
-SAND_VERSION=V8-04_05_2023
+SAND_VERSION=V8-02_06_2023
 PREF_MATLAB_EXE=/usr/software/MATLAB/R2022a/bin/matlab
 MATLAB_EXE=Auto
 ORIGIN=$(pwd)
@@ -21,10 +21,6 @@ echo ""
 echo "SAND Spectral Decomposition"
 echo "Yue Wu, Omid Sanati, Mario Uchimiya, Krish Krishnamurthy, Art Edison, and Frank Delaglio"
 echo ""
-
-#
-# Leave the following text unchanged so that other scripts can extract version info:
-
 echo "SAND.sh SAND.sh Version:       ${SAND_VERSION}"
 echo "SAND.sh Libraries and Scripts: $SANDPATH"
 echo ""

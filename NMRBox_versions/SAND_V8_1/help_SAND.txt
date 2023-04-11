@@ -80,3 +80,11 @@
 # when it shows "try again! wrong inputs: choose servers and names correctly!": you did not assign server name (-x) and/or name of job (-O)
 # when it shows "try again! Job name already exists, choose a different name correctly!": your input name of the job (-O) is already entered in the past and there is a folder with its name under ./log folder
 ---------------------------------------------------------------------------------------------------------------
+V8
+
+These scripts are adjusted versions of:
+
+/public/groups/sand/meeting/V7_latest_updates/merged_revised_Yue_and_omid_frank/
+
+frank.delaglio@nist.gov 1/24/2023
+
