@@ -22,7 +22,9 @@ nmrPipe -in raw.ft \
 #  Add -xC 1.0 to correct for first point scaling.
 #  Save scale factor (was -scaleTo 1000.0)
 
-basicFT1.com -in test.fid -out test.ft1 -xC1 1.0
+# 1/31/2024 add -xELB 0.0 fd lp and zh
+# basicFT1.com -in test.fid -out test.ft1 -xC1 1.0
+basicFT1.com -in test.fid -out test.ft1 -xC1 1.0 -xELB 0.0
 
 set maxVal      = (`specStat.com -in test.ft1 -stat vMax -brief`)
 set scaleFactor = (`MATH "div( 1000.0, $maxVal )"`)
@@ -38,7 +40,10 @@ echo $scaleFactor > scale.txt
 
 copyHdr.tcl -in ../1/test.ft1 -out test.ft1
 
-basicFT1.com -in test.fid -out test2.ft1
+# 1/31/2024 add -xC1 1.0 -xELB 0.0 fd lp and zh
+# basicFT1.com -in test.fid -out test2.ft1
+basicFT1.com -in test.fid -out test2.ft1 -xC1 1.0 -xELB 0.0
+
 
 
 set maxVal      = (`specStat.com -in test2.ft1 -stat vMax -brief`)
